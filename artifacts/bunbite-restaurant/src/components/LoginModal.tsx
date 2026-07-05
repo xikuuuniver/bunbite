@@ -300,11 +300,11 @@ export default function LoginModal({ isOpen, onClose }: LoginModalProps) {
                 </form>
 
                 {/* Sign up */}
-                <div className="flex flex-col items-center gap-2.5 mt-5">
+                <div className="flex flex-col items-center gap-2.5 mt-9">
                   <p className="text-xs text-gray-400">Don't have an account?</p>
                   <button
                     type="button"
-                    className="w-full py-4 rounded-xl bg-gray-900 hover:bg-black text-white font-semibold text-sm tracking-wide transition-colors"
+                    className="w-full py-3 rounded-xl bg-gray-900 hover:bg-black text-white font-semibold text-xs tracking-wide transition-colors"
                   >
                     Create One
                   </button>
