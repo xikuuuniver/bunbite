@@ -165,8 +165,7 @@ const DAYS  = Array.from({ length: 31  }, (_, i) => i + 1);
 
 const STEPS = [
   { key:'country',   title:'Where are you from?',         desc:'Select your country of residence. Countries are grouped by continent for easy browsing.' },
-  { key:'firstName', title:"What's your first name?",     desc:'Enter your legal first name as it appears on official documents.' },
-  { key:'lastName',  title:"What's your last name?",      desc:'Enter your family name or surname.' },
+  { key:'name',      title:"What's your name?",           desc:'Enter your legal first and last name as they appear on official documents.' },
   { key:'birthday',  title:'When is your birthday?',      desc:'Your date of birth helps us verify your age and personalise special offers for you.' },
   { key:'gender',    title:'How do you identify?',        desc:'This helps us personalise your experience and address you correctly in all communications.' },
   { key:'password',  title:'Create a strong password',    desc:'Your password keeps your account safe. Make sure it meets all the requirements listed below.' },
@@ -240,8 +239,10 @@ export default function SignupModal({ isOpen, onClose, onLoginClick }: SignupMod
   const validate = (): string => {
     switch (STEPS[step].key) {
       case 'country':   return !country ? 'Please select your country.' : '';
-      case 'firstName': return !firstName.trim() ? 'First name is required.' : '';
-      case 'lastName':  return !lastName.trim()  ? 'Last name is required.'  : '';
+      case 'name':
+        if (!firstName.trim()) return 'Please enter your first name.';
+        if (!lastName.trim())  return 'Please enter your last name.';
+        return '';
       case 'birthday': {
         if (!birthMonth || !birthDay || !birthYear) return 'Please complete your date of birth.';
         const dob = new Date(+birthYear, MONTHS.indexOf(birthMonth), +birthDay);
@@ -316,20 +317,18 @@ export default function SignupModal({ isOpen, onClose, onLoginClick }: SignupMod
       </select>
     );
 
-    /* First name */
-    if (key === 'firstName') return (
-      <input type="text" placeholder="e.g. Jane" value={firstName} autoFocus
-        onChange={e => { setFirstName(e.target.value); setError(''); }}
-        onKeyDown={e => e.key === 'Enter' && advance()}
-        className={inputCls(error)} />
-    );
-
-    /* Last name */
-    if (key === 'lastName') return (
-      <input type="text" placeholder="e.g. Doe" value={lastName} autoFocus
-        onChange={e => { setLastName(e.target.value); setError(''); }}
-        onKeyDown={e => e.key === 'Enter' && advance()}
-        className={inputCls(error)} />
+    /* First + Last name */
+    if (key === 'name') return (
+      <div className="flex gap-3">
+        <input type="text" placeholder="First name" value={firstName} autoFocus
+          onChange={e => { setFirstName(e.target.value); setError(''); }}
+          onKeyDown={e => e.key === 'Enter' && advance()}
+          className={`${inputCls(error)} flex-1`} />
+        <input type="text" placeholder="Last name" value={lastName}
+          onChange={e => { setLastName(e.target.value); setError(''); }}
+          onKeyDown={e => e.key === 'Enter' && advance()}
+          className={`${inputCls(error)} flex-1`} />
+      </div>
     );
 
     /* Birthday */
@@ -606,7 +605,7 @@ export default function SignupModal({ isOpen, onClose, onLoginClick }: SignupMod
                 </div>
 
                 {/* Animated step */}
-                <div className="flex-1 overflow-y-auto px-10">
+                <div className="flex-1 overflow-y-auto px-10 pb-2">
                   <AnimatePresence mode="wait" custom={dir}>
                     <motion.div
                       key={step}
@@ -642,7 +641,7 @@ export default function SignupModal({ isOpen, onClose, onLoginClick }: SignupMod
                       </div>
 
                       {/* Navigation */}
-                      <div className="flex flex-col gap-3 mt-2">
+                      <div className="flex flex-col gap-3 mt-10">
                         <div className="flex gap-3">
                           {step > 0 && (
                             <button type="button" onClick={back}
@@ -666,21 +665,32 @@ export default function SignupModal({ isOpen, onClose, onLoginClick }: SignupMod
                             Skip for now
                           </button>
                         )}
-
-                        {step === 0 && (
-                          <div className="flex flex-col items-center gap-2.5 mt-1">
-                            <p className="text-xs text-gray-400">Already have an account?</p>
-                            <button type="button"
-                              onClick={() => { handleClose(); onLoginClick(); }}
-                              className="w-2/3 py-3 rounded-2xl bg-gray-900 hover:bg-black text-white font-semibold text-xs tracking-wide transition-colors">
-                              Login
-                            </button>
-                          </div>
-                        )}
                       </div>
                     </motion.div>
                   </AnimatePresence>
                 </div>
+
+                {/* Fixed bottom — "Already have an account?" only on step 0 */}
+                <AnimatePresence>
+                  {step === 0 && (
+                    <motion.div
+                      initial={{ opacity: 0, y: 8 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: 8 }}
+                      transition={{ duration: 0.2 }}
+                      className="shrink-0 px-10 pt-3 pb-7 flex flex-col items-center gap-2.5 border-t border-gray-100"
+                    >
+                      <p className="text-xs text-gray-400">Already have an account?</p>
+                      <button
+                        type="button"
+                        onClick={() => { handleClose(); onLoginClick(); }}
+                        className="w-2/3 py-3 rounded-2xl bg-gray-900 hover:bg-black text-white font-semibold text-xs tracking-wide transition-colors"
+                      >
+                        Login
+                      </button>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
 
               </div>
             </motion.div>
