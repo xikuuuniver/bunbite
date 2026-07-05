@@ -304,7 +304,7 @@ export default function LoginModal({ isOpen, onClose }: LoginModalProps) {
                   <p className="text-xs text-gray-400">Don't have an account?</p>
                   <button
                     type="button"
-                    className="w-full py-3 rounded-xl bg-gray-900 hover:bg-black text-white font-semibold text-xs tracking-wide transition-colors"
+                    className="w-2/3 py-3 rounded-xl bg-gray-900 hover:bg-black text-white font-semibold text-xs tracking-wide transition-colors"
                   >
                     Create One
                   </button>
