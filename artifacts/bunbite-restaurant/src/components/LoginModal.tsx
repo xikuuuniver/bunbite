@@ -7,6 +7,7 @@ import bunbiteLogo from '@/assets/bunbite-logo.png';
 interface LoginModalProps {
   isOpen: boolean;
   onClose: () => void;
+  onSignupClick: () => void;
 }
 
 interface FormErrors {
@@ -23,10 +24,10 @@ function validateEmail(value: string): string | undefined {
 
 function validatePassword(value: string): string | undefined {
   if (!value) return 'Password is required.';
-  if (value.length < 6) return 'Password must be at least 6 characters.';
+  if (value.length < 8) return 'Password must be at least 8 characters.';
 }
 
-export default function LoginModal({ isOpen, onClose }: LoginModalProps) {
+export default function LoginModal({ isOpen, onClose, onSignupClick }: LoginModalProps) {
   const [showPassword, setShowPassword] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -304,6 +305,7 @@ export default function LoginModal({ isOpen, onClose }: LoginModalProps) {
                   <p className="text-xs text-gray-400">Don't have an account?</p>
                   <button
                     type="button"
+                    onClick={() => { handleClose(); onSignupClick(); }}
                     className="w-2/3 py-3 rounded-xl bg-gray-900 hover:bg-black text-white font-semibold text-xs tracking-wide transition-colors"
                   >
                     Create One

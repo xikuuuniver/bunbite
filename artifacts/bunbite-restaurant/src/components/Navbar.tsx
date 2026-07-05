@@ -1,10 +1,15 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import LoginModal from './LoginModal';
+import SignupModal from './SignupModal';
 
 export default function Navbar() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isLoginOpen, setIsLoginOpen] = useState(false);
+  const [isSignupOpen, setIsSignupOpen] = useState(false);
+
+  const openSignup = () => { setIsLoginOpen(false); setIsSignupOpen(true); };
+  const openLogin  = () => { setIsSignupOpen(false); setIsLoginOpen(true); };
 
   const scrollTo = (id: string) => {
     setIsMobileMenuOpen(false);
@@ -110,8 +115,9 @@ export default function Navbar() {
         )}
       </AnimatePresence>
 
-      {/* Login modal */}
-      <LoginModal isOpen={isLoginOpen} onClose={() => setIsLoginOpen(false)} />
+      {/* Modals */}
+      <LoginModal isOpen={isLoginOpen} onClose={() => setIsLoginOpen(false)} onSignupClick={openSignup} />
+      <SignupModal isOpen={isSignupOpen} onClose={() => setIsSignupOpen(false)} onLoginClick={openLogin} />
     </>
   );
 }
