@@ -1,6 +1,6 @@
-import { useState, useRef, ChangeEvent } from 'react';
+import { useState, useRef, ChangeEvent, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Eye, EyeOff, Camera, User, ChevronLeft } from 'lucide-react';
+import { X, Eye, EyeOff, Camera, User, ChevronLeft, Check } from 'lucide-react';
 import loginCharacters from '@/assets/login-characters.png';
 import bunbiteLogo from '@/assets/bunbite-logo.png';
 
@@ -10,77 +10,170 @@ interface SignupModalProps {
   onLoginClick: () => void;
 }
 
-/* ── Countries by continent ── */
-const CONTINENTS: Record<string, string[]> = {
+/* ─────────────────────────────────────────
+   Countries + dial codes grouped by continent
+───────────────────────────────────────── */
+const CONTINENTS_DIAL: Record<string, { name: string; dial: string }[]> = {
   Asia: [
-    'Afghanistan','Bangladesh','Cambodia','China','India','Indonesia','Iran','Iraq',
-    'Japan','Jordan','Kazakhstan','Kuwait','Kyrgyzstan','Laos','Lebanon','Malaysia',
-    'Mongolia','Myanmar','Nepal','North Korea','Oman','Pakistan','Philippines','Qatar',
-    'Saudi Arabia','Singapore','South Korea','Sri Lanka','Syria','Taiwan','Tajikistan',
-    'Thailand','Turkmenistan','United Arab Emirates','Uzbekistan','Vietnam','Yemen',
+    { name:'Afghanistan',          dial:'+93'  },{ name:'Bangladesh',           dial:'+880' },
+    { name:'Cambodia',             dial:'+855' },{ name:'China',                dial:'+86'  },
+    { name:'India',                dial:'+91'  },{ name:'Indonesia',            dial:'+62'  },
+    { name:'Iran',                 dial:'+98'  },{ name:'Iraq',                 dial:'+964' },
+    { name:'Japan',                dial:'+81'  },{ name:'Jordan',               dial:'+962' },
+    { name:'Kazakhstan',           dial:'+7'   },{ name:'Kuwait',               dial:'+965' },
+    { name:'Kyrgyzstan',           dial:'+996' },{ name:'Laos',                 dial:'+856' },
+    { name:'Lebanon',              dial:'+961' },{ name:'Malaysia',             dial:'+60'  },
+    { name:'Mongolia',             dial:'+976' },{ name:'Myanmar',              dial:'+95'  },
+    { name:'Nepal',                dial:'+977' },{ name:'North Korea',          dial:'+850' },
+    { name:'Oman',                 dial:'+968' },{ name:'Pakistan',             dial:'+92'  },
+    { name:'Philippines',          dial:'+63'  },{ name:'Qatar',                dial:'+974' },
+    { name:'Saudi Arabia',         dial:'+966' },{ name:'Singapore',            dial:'+65'  },
+    { name:'South Korea',          dial:'+82'  },{ name:'Sri Lanka',            dial:'+94'  },
+    { name:'Syria',                dial:'+963' },{ name:'Taiwan',               dial:'+886' },
+    { name:'Tajikistan',           dial:'+992' },{ name:'Thailand',             dial:'+66'  },
+    { name:'Turkmenistan',         dial:'+993' },{ name:'United Arab Emirates', dial:'+971' },
+    { name:'Uzbekistan',           dial:'+998' },{ name:'Vietnam',              dial:'+84'  },
+    { name:'Yemen',                dial:'+967' },
   ],
   Europe: [
-    'Albania','Austria','Belarus','Belgium','Bosnia and Herzegovina','Bulgaria','Croatia',
-    'Cyprus','Czech Republic','Denmark','Estonia','Finland','France','Germany','Greece',
-    'Hungary','Iceland','Ireland','Italy','Latvia','Lithuania','Luxembourg','Malta',
-    'Moldova','Montenegro','Netherlands','North Macedonia','Norway','Poland','Portugal',
-    'Romania','Russia','Serbia','Slovakia','Slovenia','Spain','Sweden','Switzerland',
-    'Ukraine','United Kingdom',
+    { name:'Albania',              dial:'+355' },{ name:'Austria',              dial:'+43'  },
+    { name:'Belarus',              dial:'+375' },{ name:'Belgium',              dial:'+32'  },
+    { name:'Bosnia and Herzegovina',dial:'+387'},{ name:'Bulgaria',             dial:'+359' },
+    { name:'Croatia',              dial:'+385' },{ name:'Cyprus',               dial:'+357' },
+    { name:'Czech Republic',       dial:'+420' },{ name:'Denmark',              dial:'+45'  },
+    { name:'Estonia',              dial:'+372' },{ name:'Finland',              dial:'+358' },
+    { name:'France',               dial:'+33'  },{ name:'Germany',              dial:'+49'  },
+    { name:'Greece',               dial:'+30'  },{ name:'Hungary',              dial:'+36'  },
+    { name:'Iceland',              dial:'+354' },{ name:'Ireland',              dial:'+353' },
+    { name:'Italy',                dial:'+39'  },{ name:'Latvia',               dial:'+371' },
+    { name:'Lithuania',            dial:'+370' },{ name:'Luxembourg',           dial:'+352' },
+    { name:'Malta',                dial:'+356' },{ name:'Moldova',              dial:'+373' },
+    { name:'Montenegro',           dial:'+382' },{ name:'Netherlands',          dial:'+31'  },
+    { name:'North Macedonia',      dial:'+389' },{ name:'Norway',               dial:'+47'  },
+    { name:'Poland',               dial:'+48'  },{ name:'Portugal',             dial:'+351' },
+    { name:'Romania',              dial:'+40'  },{ name:'Russia',               dial:'+7'   },
+    { name:'Serbia',               dial:'+381' },{ name:'Slovakia',             dial:'+421' },
+    { name:'Slovenia',             dial:'+386' },{ name:'Spain',                dial:'+34'  },
+    { name:'Sweden',               dial:'+46'  },{ name:'Switzerland',          dial:'+41'  },
+    { name:'Ukraine',              dial:'+380' },{ name:'United Kingdom',       dial:'+44'  },
   ],
   Africa: [
-    'Algeria','Angola','Benin','Botswana','Burkina Faso','Burundi','Cameroon','Cape Verde',
-    'Central African Republic','Chad','Comoros','Congo','DR Congo','Djibouti','Egypt',
-    'Eritrea','Eswatini','Ethiopia','Gabon','Gambia','Ghana','Guinea','Guinea-Bissau',
-    'Ivory Coast','Kenya','Lesotho','Liberia','Libya','Madagascar','Malawi','Mali',
-    'Mauritania','Mauritius','Morocco','Mozambique','Namibia','Niger','Nigeria','Rwanda',
-    'Senegal','Sierra Leone','Somalia','South Africa','South Sudan','Sudan','Tanzania',
-    'Togo','Tunisia','Uganda','Zambia','Zimbabwe',
+    { name:'Algeria',              dial:'+213' },{ name:'Angola',               dial:'+244' },
+    { name:'Benin',                dial:'+229' },{ name:'Botswana',             dial:'+267' },
+    { name:'Burkina Faso',         dial:'+226' },{ name:'Burundi',              dial:'+257' },
+    { name:'Cameroon',             dial:'+237' },{ name:'Cape Verde',           dial:'+238' },
+    { name:'Central African Republic',dial:'+236'},{ name:'Chad',               dial:'+235' },
+    { name:'Comoros',              dial:'+269' },{ name:'Congo',                dial:'+242' },
+    { name:'DR Congo',             dial:'+243' },{ name:'Djibouti',             dial:'+253' },
+    { name:'Egypt',                dial:'+20'  },{ name:'Eritrea',              dial:'+291' },
+    { name:'Eswatini',             dial:'+268' },{ name:'Ethiopia',             dial:'+251' },
+    { name:'Gabon',                dial:'+241' },{ name:'Gambia',               dial:'+220' },
+    { name:'Ghana',                dial:'+233' },{ name:'Guinea',               dial:'+224' },
+    { name:'Guinea-Bissau',        dial:'+245' },{ name:'Ivory Coast',          dial:'+225' },
+    { name:'Kenya',                dial:'+254' },{ name:'Lesotho',              dial:'+266' },
+    { name:'Liberia',              dial:'+231' },{ name:'Libya',                dial:'+218' },
+    { name:'Madagascar',           dial:'+261' },{ name:'Malawi',               dial:'+265' },
+    { name:'Mali',                 dial:'+223' },{ name:'Mauritania',           dial:'+222' },
+    { name:'Mauritius',            dial:'+230' },{ name:'Morocco',              dial:'+212' },
+    { name:'Mozambique',           dial:'+258' },{ name:'Namibia',              dial:'+264' },
+    { name:'Niger',                dial:'+227' },{ name:'Nigeria',              dial:'+234' },
+    { name:'Rwanda',               dial:'+250' },{ name:'Senegal',              dial:'+221' },
+    { name:'Sierra Leone',         dial:'+232' },{ name:'Somalia',              dial:'+252' },
+    { name:'South Africa',         dial:'+27'  },{ name:'South Sudan',          dial:'+211' },
+    { name:'Sudan',                dial:'+249' },{ name:'Tanzania',             dial:'+255' },
+    { name:'Togo',                 dial:'+228' },{ name:'Tunisia',              dial:'+216' },
+    { name:'Uganda',               dial:'+256' },{ name:'Zambia',               dial:'+260' },
+    { name:'Zimbabwe',             dial:'+263' },
   ],
   'North America': [
-    'Antigua and Barbuda','Bahamas','Barbados','Belize','Canada','Costa Rica','Cuba',
-    'Dominica','Dominican Republic','El Salvador','Grenada','Guatemala','Haiti','Honduras',
-    'Jamaica','Mexico','Nicaragua','Panama','Saint Kitts and Nevis','Saint Lucia',
-    'Saint Vincent and the Grenadines','Trinidad and Tobago','United States',
+    { name:'Antigua and Barbuda',  dial:'+1268'},{ name:'Bahamas',              dial:'+1242'},
+    { name:'Barbados',             dial:'+1246'},{ name:'Belize',               dial:'+501' },
+    { name:'Canada',               dial:'+1'   },{ name:'Costa Rica',           dial:'+506' },
+    { name:'Cuba',                 dial:'+53'  },{ name:'Dominica',             dial:'+1767'},
+    { name:'Dominican Republic',   dial:'+1809'},{ name:'El Salvador',          dial:'+503' },
+    { name:'Grenada',              dial:'+1473'},{ name:'Guatemala',            dial:'+502' },
+    { name:'Haiti',                dial:'+509' },{ name:'Honduras',             dial:'+504' },
+    { name:'Jamaica',              dial:'+1876'},{ name:'Mexico',               dial:'+52'  },
+    { name:'Nicaragua',            dial:'+505' },{ name:'Panama',               dial:'+507' },
+    { name:'Saint Kitts and Nevis',dial:'+1869'},{ name:'Saint Lucia',          dial:'+1758'},
+    { name:'Saint Vincent and the Grenadines',dial:'+1784'},
+    { name:'Trinidad and Tobago',  dial:'+1868'},{ name:'United States',        dial:'+1'   },
   ],
   'South America': [
-    'Argentina','Bolivia','Brazil','Chile','Colombia','Ecuador','Guyana','Paraguay',
-    'Peru','Suriname','Uruguay','Venezuela',
+    { name:'Argentina',            dial:'+54'  },{ name:'Bolivia',              dial:'+591' },
+    { name:'Brazil',               dial:'+55'  },{ name:'Chile',                dial:'+56'  },
+    { name:'Colombia',             dial:'+57'  },{ name:'Ecuador',              dial:'+593' },
+    { name:'Guyana',               dial:'+592' },{ name:'Paraguay',             dial:'+595' },
+    { name:'Peru',                 dial:'+51'  },{ name:'Suriname',             dial:'+597' },
+    { name:'Uruguay',              dial:'+598' },{ name:'Venezuela',            dial:'+58'  },
   ],
   Oceania: [
-    'Australia','Fiji','Kiribati','Marshall Islands','Micronesia','Nauru','New Zealand',
-    'Palau','Papua New Guinea','Samoa','Solomon Islands','Tonga','Tuvalu','Vanuatu',
+    { name:'Australia',            dial:'+61'  },{ name:'Fiji',                 dial:'+679' },
+    { name:'Kiribati',             dial:'+686' },{ name:'Marshall Islands',     dial:'+692' },
+    { name:'Micronesia',           dial:'+691' },{ name:'Nauru',                dial:'+674' },
+    { name:'New Zealand',          dial:'+64'  },{ name:'Palau',                dial:'+680' },
+    { name:'Papua New Guinea',     dial:'+675' },{ name:'Samoa',                dial:'+685' },
+    { name:'Solomon Islands',      dial:'+677' },{ name:'Tonga',                dial:'+676' },
+    { name:'Tuvalu',               dial:'+688' },{ name:'Vanuatu',              dial:'+678' },
   ],
-  Antarctica: ['Antarctica'],
+  Antarctica: [
+    { name:'Antarctica',           dial:'+672' },
+  ],
 };
 
-/* ── Password strength ── */
+/* flat country→dial lookup */
+const COUNTRY_TO_DIAL: Record<string, string> = {};
+Object.values(CONTINENTS_DIAL).flat().forEach(({ name, dial }) => { COUNTRY_TO_DIAL[name] = dial; });
+
+/* flat list for the phone-code selector */
+const ALL_DIAL = Object.entries(CONTINENTS_DIAL).map(([continent, list]) => ({ continent, list }));
+
+/* ─────────────────────────────────────────
+   Password strength + requirements
+───────────────────────────────────────── */
+const PW_RULES = [
+  { id: 'len',     label: 'At least 8 characters',          test: (p: string) => p.length >= 8 },
+  { id: 'upper',   label: 'One uppercase letter (A–Z)',      test: (p: string) => /[A-Z]/.test(p) },
+  { id: 'lower',   label: 'One lowercase letter (a–z)',      test: (p: string) => /[a-z]/.test(p) },
+  { id: 'number',  label: 'One number (0–9)',                test: (p: string) => /\d/.test(p) },
+  { id: 'special', label: 'One special character (!@#$…)',   test: (p: string) => /[^A-Za-z0-9]/.test(p) },
+];
+
 function getStrength(pw: string) {
-  let s = 0;
-  if (pw.length >= 8)        s++;
-  if (pw.length >= 12)       s++;
-  if (/[A-Z]/.test(pw))     s++;
-  if (/[a-z]/.test(pw))     s++;
-  if (/\d/.test(pw))        s++;
-  if (/[^A-Za-z0-9]/.test(pw)) s++;
-  if (s <= 1) return { label: 'Weak',   color: 'bg-red-400',    text: 'text-red-400',    bars: 1 };
-  if (s <= 3) return { label: 'Fair',   color: 'bg-orange-400', text: 'text-orange-400', bars: 2 };
-  if (s <= 4) return { label: 'Good',   color: 'bg-yellow-400', text: 'text-yellow-500', bars: 3 };
-  return              { label: 'Strong', color: 'bg-green-500',  text: 'text-green-500',  bars: 4 };
+  const passed = PW_RULES.filter(r => r.test(pw)).length;
+  if (passed <= 1) return { label:'Weak',   color:'bg-red-400',    text:'text-red-400',    bars: 1 };
+  if (passed <= 3) return { label:'Fair',   color:'bg-orange-400', text:'text-orange-400', bars: 2 };
+  if (passed === 4) return { label:'Good',  color:'bg-yellow-400', text:'text-yellow-500', bars: 3 };
+  return               { label:'Strong', color:'bg-green-500',  text:'text-green-500',  bars: 4 };
 }
 
+/* ─────────────────────────────────────────
+   Allowed email domains
+───────────────────────────────────────── */
+const ALLOWED_DOMAINS = ['gmail.com', 'outlook.com', 'proton.me', 'hotmail.com', 'protonmail.com'];
+const emailRx = new RegExp(`^[a-zA-Z0-9._%+\\-]+@(${ALLOWED_DOMAINS.map(d => d.replace('.', '\\.')).join('|')})$`, 'i');
+
+/* ─────────────────────────────────────────
+   Step definitions (10 total)
+───────────────────────────────────────── */
 const GENDERS = ['Male', 'Female', 'Non-binary', 'Prefer not to say'];
 
-/* ── Step definitions ── */
+const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+const currentYear = new Date().getFullYear();
+const YEARS = Array.from({ length: 100 }, (_, i) => currentYear - 13 - i); // max 13 y/o
+const DAYS  = Array.from({ length: 31  }, (_, i) => i + 1);
+
 const STEPS = [
-  { key: 'country',  title: 'Where are you from?',          desc: 'Select your country of residence. Countries are grouped by continent for easy browsing.' },
-  { key: 'firstName',title: "What's your first name?",      desc: 'Enter your legal first name as it appears on official documents.' },
-  { key: 'lastName', title: "What's your last name?",       desc: 'Enter your family name or surname.' },
-  { key: 'gender',   title: 'How do you identify?',         desc: 'This helps us personalise your experience and address you correctly.' },
-  { key: 'password', title: 'Create a strong password',     desc: 'Use at least 8 characters. Mix uppercase letters, numbers, and symbols for better security.' },
-  { key: 'avatar',   title: 'Add a profile picture',        desc: 'Upload a photo so other BunBite members can recognise you. JPG, PNG, or WebP — max 5 MB. You can skip this.' },
-  { key: 'username', title: 'Pick a unique username',        desc: 'Your handle on BunBite. Min 3 characters — letters, numbers, and underscores only. No spaces.' },
-  { key: 'email',    title: "What's your email address?",   desc: "We'll send order confirmations and account updates to this address." },
-  { key: 'phone',    title: "What's your phone number?",    desc: 'Used for delivery updates and two-factor authentication. Include your country code, e.g. +1.' },
+  { key:'country',   title:'Where are you from?',         desc:'Select your country of residence. Countries are grouped by continent for easy browsing.' },
+  { key:'firstName', title:"What's your first name?",     desc:'Enter your legal first name as it appears on official documents.' },
+  { key:'lastName',  title:"What's your last name?",      desc:'Enter your family name or surname.' },
+  { key:'birthday',  title:'When is your birthday?',      desc:'Your date of birth helps us verify your age and personalise special offers for you.' },
+  { key:'gender',    title:'How do you identify?',        desc:'This helps us personalise your experience and address you correctly in all communications.' },
+  { key:'password',  title:'Create a strong password',    desc:'Your password keeps your account safe. Make sure it meets all the requirements listed below.' },
+  { key:'avatar',    title:'Add a profile picture',       desc:'Upload a photo so other BunBite members can recognise you. JPG, PNG, or WebP — max 5 MB. You can skip this.' },
+  { key:'username',  title:'Pick a unique username',      desc:'Your public handle on BunBite. Min 3 characters — letters, numbers, and underscores only. No spaces.' },
+  { key:'email',     title:"What's your email address?",  desc:`We'll send order confirmations and account updates here. Accepted providers: ${ALLOWED_DOMAINS.join(', ')}.` },
+  { key:'phone',     title:"What's your phone number?",   desc:'Select your country code, then enter your phone number (digits only). Used for delivery updates and 2FA.' },
 ];
 
 const TOTAL = STEPS.length;
@@ -98,7 +191,11 @@ const inputCls = (err?: string) =>
       : 'bg-gray-100 border border-transparent focus:ring-orange-400/50 focus:bg-white'
   }`;
 
-/* ── Component ── */
+const selectCls = (err?: string) => `${inputCls(err)} appearance-none cursor-pointer`;
+
+/* ─────────────────────────────────────────
+   Component
+───────────────────────────────────────── */
 export default function SignupModal({ isOpen, onClose, onLoginClick }: SignupModalProps) {
   const fileRef = useRef<HTMLInputElement>(null);
 
@@ -106,19 +203,28 @@ export default function SignupModal({ isOpen, onClose, onLoginClick }: SignupMod
   const [dir,  setDir]    = useState(1);
 
   /* field values */
-  const [country,   setCountry]   = useState('');
-  const [firstName, setFirstName] = useState('');
-  const [lastName,  setLastName]  = useState('');
-  const [gender,    setGender]    = useState('');
-  const [password,  setPassword]  = useState('');
-  const [showPw,    setShowPw]    = useState(false);
-  const [avatar,    setAvatar]    = useState<string | null>(null);
-  const [username,  setUsername]  = useState('');
-  const [email,     setEmail]     = useState('');
-  const [phone,     setPhone]     = useState('');
+  const [country,     setCountry]     = useState('');
+  const [firstName,   setFirstName]   = useState('');
+  const [lastName,    setLastName]    = useState('');
+  const [birthMonth,  setBirthMonth]  = useState('');
+  const [birthDay,    setBirthDay]    = useState('');
+  const [birthYear,   setBirthYear]   = useState('');
+  const [gender,      setGender]      = useState('');
+  const [password,    setPassword]    = useState('');
+  const [showPw,      setShowPw]      = useState(false);
+  const [avatar,      setAvatar]      = useState<string | null>(null);
+  const [username,    setUsername]    = useState('');
+  const [email,       setEmail]       = useState('');
+  const [phoneCode,   setPhoneCode]   = useState('+1');
+  const [phoneNumber, setPhoneNumber] = useState('');
 
   const [error,     setError]     = useState('');
   const [isLoading, setIsLoading] = useState(false);
+
+  /* Pre-fill phone code when country changes */
+  useEffect(() => {
+    if (country && COUNTRY_TO_DIAL[country]) setPhoneCode(COUNTRY_TO_DIAL[country]);
+  }, [country]);
 
   const strength = password ? getStrength(password) : null;
 
@@ -130,30 +236,39 @@ export default function SignupModal({ isOpen, onClose, onLoginClick }: SignupMod
     reader.readAsDataURL(file);
   };
 
-  /* per-step validation */
+  /* Per-step validation */
   const validate = (): string => {
     switch (STEPS[step].key) {
-      case 'country':   return !country   ? 'Please select your country.'                                              : '';
-      case 'firstName': return !firstName.trim() ? 'First name is required.'                                          : '';
-      case 'lastName':  return !lastName.trim()  ? 'Last name is required.'                                           : '';
-      case 'gender':    return !gender    ? 'Please select a gender.'                                                  : '';
-      case 'password':
-        if (!password)            return 'Password is required.';
-        if (password.length < 8)  return 'Password must be at least 8 characters.';
-        if ((strength?.bars ?? 0) < 2) return 'Password too weak — add uppercase letters, numbers, or symbols.';
+      case 'country':   return !country ? 'Please select your country.' : '';
+      case 'firstName': return !firstName.trim() ? 'First name is required.' : '';
+      case 'lastName':  return !lastName.trim()  ? 'Last name is required.'  : '';
+      case 'birthday': {
+        if (!birthMonth || !birthDay || !birthYear) return 'Please complete your date of birth.';
+        const dob = new Date(+birthYear, MONTHS.indexOf(birthMonth), +birthDay);
+        const minDate = new Date(); minDate.setFullYear(minDate.getFullYear() - 13);
+        if (dob > minDate) return 'You must be at least 13 years old to create an account.';
         return '';
-      case 'avatar':    return ''; // optional
+      }
+      case 'gender':   return !gender ? 'Please select a gender.' : '';
+      case 'password': {
+        if (!password) return 'Password is required.';
+        if (password.length < 8) return 'Password must be at least 8 characters.';
+        const failedRules = PW_RULES.filter(r => !r.test(password));
+        if (failedRules.length > 0) return `Missing: ${failedRules.map(r => r.label.toLowerCase()).join(', ')}.`;
+        return '';
+      }
+      case 'avatar':   return '';
       case 'username':
-        if (!username.trim())               return 'Username is required.';
+        if (!username.trim()) return 'Username is required.';
         if (!/^[a-zA-Z0-9_]{3,}$/.test(username)) return 'Min 3 characters — letters, numbers, _ only.';
         return '';
       case 'email':
-        if (!email.trim())                              return 'Email address is required.';
-        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return 'Please enter a valid email address.';
+        if (!email.trim()) return 'Email address is required.';
+        if (!emailRx.test(email)) return `Please use one of: ${ALLOWED_DOMAINS.join(', ')}.`;
         return '';
       case 'phone':
-        if (!phone.trim())                        return 'Phone number is required.';
-        if (!/^\+?[\d\s\-().]{7,}$/.test(phone)) return 'Please enter a valid phone number.';
+        if (!phoneNumber.trim()) return 'Phone number is required.';
+        if (!/^\d{4,15}$/.test(phoneNumber)) return 'Enter 4–15 digits, no spaces or dashes.';
         return '';
       default: return '';
     }
@@ -167,11 +282,7 @@ export default function SignupModal({ isOpen, onClose, onLoginClick }: SignupMod
     else submit();
   };
 
-  const back = () => {
-    setError('');
-    setDir(-1);
-    setStep(s => s - 1);
-  };
+  const back = () => { setError(''); setDir(-1); setStep(s => s - 1); };
 
   const submit = () => {
     setIsLoading(true);
@@ -181,28 +292,31 @@ export default function SignupModal({ isOpen, onClose, onLoginClick }: SignupMod
   const handleClose = () => {
     onClose();
     setStep(0); setDir(1);
-    setCountry(''); setFirstName(''); setLastName(''); setGender('');
-    setPassword(''); setShowPw(false); setAvatar(null);
-    setUsername(''); setEmail(''); setPhone('');
+    setCountry(''); setFirstName(''); setLastName('');
+    setBirthMonth(''); setBirthDay(''); setBirthYear('');
+    setGender(''); setPassword(''); setShowPw(false); setAvatar(null);
+    setUsername(''); setEmail(''); setPhoneCode('+1'); setPhoneNumber('');
     setError(''); setIsLoading(false);
   };
 
-  /* ── Per-step input UI ── */
+  /* ── Per-step input ── */
   const renderField = () => {
     const key = STEPS[step].key;
 
+    /* Country */
     if (key === 'country') return (
       <select value={country} onChange={e => { setCountry(e.target.value); setError(''); }}
-        className={`${inputCls(error)} appearance-none cursor-pointer`}>
+        className={selectCls(error)}>
         <option value="" disabled>Select your country…</option>
-        {Object.entries(CONTINENTS).map(([continent, list]) => (
+        {ALL_DIAL.map(({ continent, list }) => (
           <optgroup key={continent} label={`── ${continent} ──`}>
-            {list.map(c => <option key={c} value={c}>{c}</option>)}
+            {list.map(({ name }) => <option key={name} value={name}>{name}</option>)}
           </optgroup>
         ))}
       </select>
     );
 
+    /* First name */
     if (key === 'firstName') return (
       <input type="text" placeholder="e.g. Jane" value={firstName} autoFocus
         onChange={e => { setFirstName(e.target.value); setError(''); }}
@@ -210,6 +324,7 @@ export default function SignupModal({ isOpen, onClose, onLoginClick }: SignupMod
         className={inputCls(error)} />
     );
 
+    /* Last name */
     if (key === 'lastName') return (
       <input type="text" placeholder="e.g. Doe" value={lastName} autoFocus
         onChange={e => { setLastName(e.target.value); setError(''); }}
@@ -217,6 +332,31 @@ export default function SignupModal({ isOpen, onClose, onLoginClick }: SignupMod
         className={inputCls(error)} />
     );
 
+    /* Birthday */
+    if (key === 'birthday') return (
+      <div className="flex gap-3">
+        {/* Month */}
+        <select value={birthMonth} onChange={e => { setBirthMonth(e.target.value); setError(''); }}
+          className={`${selectCls(error)} flex-[2]`}>
+          <option value="" disabled>Month</option>
+          {MONTHS.map(m => <option key={m} value={m}>{m}</option>)}
+        </select>
+        {/* Day */}
+        <select value={birthDay} onChange={e => { setBirthDay(e.target.value); setError(''); }}
+          className={`${selectCls(error)} flex-1`}>
+          <option value="" disabled>Day</option>
+          {DAYS.map(d => <option key={d} value={d}>{d}</option>)}
+        </select>
+        {/* Year */}
+        <select value={birthYear} onChange={e => { setBirthYear(e.target.value); setError(''); }}
+          className={`${selectCls(error)} flex-[1.5]`}>
+          <option value="" disabled>Year</option>
+          {YEARS.map(y => <option key={y} value={y}>{y}</option>)}
+        </select>
+      </div>
+    );
+
+    /* Gender */
     if (key === 'gender') return (
       <div className="flex flex-wrap gap-3">
         {GENDERS.map(g => (
@@ -233,8 +373,9 @@ export default function SignupModal({ isOpen, onClose, onLoginClick }: SignupMod
       </div>
     );
 
+    /* Password + requirements */
     if (key === 'password') return (
-      <div className="flex flex-col gap-3">
+      <div className="flex flex-col gap-4">
         <div className="relative">
           <input type={showPw ? 'text' : 'password'} placeholder="Create a strong password"
             value={password} autoFocus
@@ -242,32 +383,47 @@ export default function SignupModal({ isOpen, onClose, onLoginClick }: SignupMod
             onKeyDown={e => e.key === 'Enter' && advance()}
             className={`${inputCls(error)} pr-13`} />
           <button type="button" onClick={() => setShowPw(p => !p)}
-            aria-label={showPw ? 'Hide password' : 'Show password'}
+            aria-label={showPw ? 'Hide' : 'Show'}
             className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors">
             {showPw ? <EyeOff size={18} /> : <Eye size={18} />}
           </button>
         </div>
+
+        {/* Strength bar */}
         {password && strength && (
-          <div className="flex flex-col gap-2">
-            <div className="flex gap-1.5">
-              {[1,2,3,4].map(b => (
-                <div key={b}
-                  className={`h-2 flex-1 rounded-full transition-colors duration-300 ${b <= strength.bars ? strength.color : 'bg-gray-200'}`}
-                />
-              ))}
-            </div>
-            <p className={`text-sm font-semibold ${strength.text}`}>{strength.label} password</p>
+          <div className="flex gap-1.5">
+            {[1,2,3,4].map(b => (
+              <div key={b} className={`h-2 flex-1 rounded-full transition-colors duration-300 ${b <= strength.bars ? strength.color : 'bg-gray-200'}`} />
+            ))}
           </div>
         )}
+
+        {/* Requirements checklist */}
+        <div className="flex flex-col gap-2 bg-gray-50 rounded-2xl p-4">
+          <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Password requirements</p>
+          {PW_RULES.map(rule => {
+            const passed = password ? rule.test(password) : false;
+            return (
+              <div key={rule.id} className="flex items-center gap-2.5">
+                <div className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 transition-colors duration-200 ${passed ? 'bg-green-500' : 'bg-gray-200'}`}>
+                  {passed && <Check size={11} color="white" strokeWidth={3} />}
+                </div>
+                <span className={`text-sm transition-colors duration-200 ${passed ? 'text-green-600 font-medium' : 'text-gray-400'}`}>
+                  {rule.label}
+                </span>
+              </div>
+            );
+          })}
+        </div>
       </div>
     );
 
+    /* Avatar */
     if (key === 'avatar') return (
       <div className="flex flex-col items-center gap-5">
         <div
           onClick={() => fileRef.current?.click()}
-          className="w-28 h-28 rounded-full bg-gray-100 border-2 border-dashed border-gray-300 hover:border-orange-400 flex items-center justify-center overflow-hidden cursor-pointer transition-colors"
-        >
+          className="w-28 h-28 rounded-full bg-gray-100 border-2 border-dashed border-gray-300 hover:border-orange-400 flex items-center justify-center overflow-hidden cursor-pointer transition-colors">
           {avatar
             ? <img src={avatar} alt="Preview" className="w-full h-full object-cover" />
             : <User size={40} className="text-gray-300" />}
@@ -289,6 +445,7 @@ export default function SignupModal({ isOpen, onClose, onLoginClick }: SignupMod
       </div>
     );
 
+    /* Username */
     if (key === 'username') return (
       <div className="relative">
         <span className="absolute left-5 top-1/2 -translate-y-1/2 text-gray-400 text-base font-semibold select-none">@</span>
@@ -299,18 +456,56 @@ export default function SignupModal({ isOpen, onClose, onLoginClick }: SignupMod
       </div>
     );
 
+    /* Email */
     if (key === 'email') return (
-      <input type="email" placeholder="you@example.com" value={email} autoFocus
-        onChange={e => { setEmail(e.target.value); setError(''); }}
-        onKeyDown={e => e.key === 'Enter' && advance()}
-        className={inputCls(error)} />
+      <div className="flex flex-col gap-3">
+        <input type="email" placeholder="you@gmail.com" value={email} autoFocus
+          onChange={e => { setEmail(e.target.value); setError(''); }}
+          onKeyDown={e => e.key === 'Enter' && advance()}
+          className={inputCls(error)} />
+        {/* Allowed domains hint */}
+        <div className="flex flex-wrap gap-1.5">
+          {ALLOWED_DOMAINS.map(d => (
+            <span key={d}
+              className={`text-xs px-2.5 py-1 rounded-full font-medium transition-colors ${
+                email.toLowerCase().endsWith('@' + d)
+                  ? 'bg-green-100 text-green-600'
+                  : 'bg-gray-100 text-gray-400'
+              }`}>
+              @{d}
+            </span>
+          ))}
+        </div>
+      </div>
     );
 
+    /* Phone */
     if (key === 'phone') return (
-      <input type="tel" placeholder="+1 555 000 0000" value={phone} autoFocus
-        onChange={e => { setPhone(e.target.value); setError(''); }}
-        onKeyDown={e => e.key === 'Enter' && advance()}
-        className={inputCls(error)} />
+      <div className="flex gap-2">
+        {/* Country code dropdown */}
+        <select value={phoneCode} onChange={e => { setPhoneCode(e.target.value); setError(''); }}
+          className="shrink-0 w-36 px-3 py-4 rounded-2xl text-sm text-gray-700 bg-gray-100 border border-transparent focus:outline-none focus:ring-2 focus:ring-orange-400/50 focus:bg-white appearance-none cursor-pointer transition">
+          {ALL_DIAL.map(({ continent, list }) => (
+            <optgroup key={continent} label={`── ${continent} ──`}>
+              {list.map(({ name, dial }) => (
+                <option key={name} value={dial}>{dial} {name}</option>
+              ))}
+            </optgroup>
+          ))}
+        </select>
+        {/* Number input — digits only */}
+        <input
+          type="text" inputMode="numeric" placeholder="000 000 0000"
+          value={phoneNumber} autoFocus
+          onChange={e => {
+            const digits = e.target.value.replace(/\D/g, '');
+            setPhoneNumber(digits);
+            setError('');
+          }}
+          onKeyDown={e => e.key === 'Enter' && advance()}
+          className={`${inputCls(error)} flex-1`}
+        />
+      </div>
     );
 
     return null;
@@ -320,7 +515,6 @@ export default function SignupModal({ isOpen, onClose, onLoginClick }: SignupMod
     <AnimatePresence>
       {isOpen && (
         <>
-          {/* Backdrop */}
           <motion.div
             key="su-backdrop"
             initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
@@ -329,7 +523,6 @@ export default function SignupModal({ isOpen, onClose, onLoginClick }: SignupMod
             onClick={handleClose} aria-hidden="true"
           />
 
-          {/* Modal shell — stays mounted, only content slides */}
           <div className="fixed inset-0 z-[70] flex items-center justify-center p-4 pointer-events-none">
             <motion.div
               role="dialog" aria-modal="true" aria-labelledby="su-title"
@@ -338,46 +531,39 @@ export default function SignupModal({ isOpen, onClose, onLoginClick }: SignupMod
               exit={{    opacity: 0, scale: 0.93, y: 24 }}
               transition={{ type: 'spring', stiffness: 310, damping: 28 }}
               className="relative w-full max-w-5xl bg-white rounded-3xl shadow-2xl overflow-hidden pointer-events-auto flex"
-              style={{ minHeight: '540px' }}
+              style={{ minHeight: '560px', maxHeight: '94vh' }}
             >
 
               {/* ── LEFT PANEL ── */}
               <div
-                className="relative hidden sm:flex flex-col justify-between w-[38%] shrink-0 rounded-2xl m-5 p-9 overflow-hidden"
-                style={{ background: 'linear-gradient(150deg,#FB923C 0%,#F97316 55%,#FCD0A1 100%)' }}
+                className="relative hidden sm:flex flex-col justify-between w-[37%] shrink-0 rounded-2xl m-5 p-8 overflow-hidden"
+                style={{ background:'linear-gradient(150deg,#FB923C 0%,#F97316 55%,#FCD0A1 100%)' }}
               >
-                {/* Noise */}
                 <div className="absolute inset-0 rounded-2xl opacity-[0.07] pointer-events-none"
                   style={{ backgroundImage:`url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")`, backgroundSize:'180px' }}
                 />
 
                 <div className="relative z-10">
-                  <h2 className="text-white font-bold text-2xl leading-snug mb-5">
+                  <h2 className="text-white font-bold text-xl leading-snug mb-5">
                     Join the BunBite<br />
                     <span className="underline underline-offset-[6px] decoration-white/60">family today.</span>
                   </h2>
 
                   {/* Step list */}
-                  <div className="flex flex-col gap-2.5">
+                  <div className="flex flex-col gap-2">
                     {STEPS.map((s, i) => (
-                      <div key={i} className="flex items-center gap-3">
-                        {/* circle */}
-                        <div className={`w-6 h-6 rounded-full flex items-center justify-center shrink-0 transition-all duration-300 ${
-                          i < step  ? 'bg-white'
+                      <div key={i} className="flex items-center gap-2.5">
+                        <div className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 transition-all duration-300 ${
+                          i < step    ? 'bg-white'
                           : i === step ? 'bg-white ring-2 ring-white/50 ring-offset-2 ring-offset-orange-500'
                           : 'bg-white/25'
                         }`}>
-                          {i < step ? (
-                            <svg viewBox="0 0 12 12" fill="none" width="10" height="10">
-                              <path d="M2 6l3 3 5-5" stroke="#F97316" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                            </svg>
-                          ) : (
-                            <span className={`text-[10px] font-bold ${i === step ? 'text-orange-500' : 'text-white/60'}`}>{i + 1}</span>
-                          )}
+                          {i < step
+                            ? <svg viewBox="0 0 12 12" fill="none" width="9" height="9"><path d="M2 6l3 3 5-5" stroke="#F97316" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                            : <span className={`text-[9px] font-bold leading-none ${i === step ? 'text-orange-500' : 'text-white/60'}`}>{i+1}</span>}
                         </div>
-                        {/* label */}
-                        <span className={`text-xs font-medium transition-colors duration-300 leading-tight ${
-                          i === step ? 'text-white font-bold' : i < step ? 'text-white/70' : 'text-white/40'
+                        <span className={`text-xs leading-tight transition-colors duration-300 ${
+                          i === step ? 'text-white font-bold' : i < step ? 'text-white/60' : 'text-white/35'
                         }`}>
                           {s.title}
                         </span>
@@ -387,14 +573,14 @@ export default function SignupModal({ isOpen, onClose, onLoginClick }: SignupMod
                 </div>
 
                 <div className="relative z-10 flex justify-center">
-                  <img src={loginCharacters} alt="" className="w-full max-w-[240px] object-contain drop-shadow-lg" style={{ marginBottom:'-1.25rem' }} />
+                  <img src={loginCharacters} alt="" className="w-full max-w-[220px] object-contain drop-shadow-lg" style={{ marginBottom:'-1.25rem' }} />
                 </div>
               </div>
 
               {/* ── RIGHT PANEL ── */}
               <div className="flex-1 flex flex-col overflow-hidden">
 
-                {/* Top bar: logo + close + progress */}
+                {/* Header */}
                 <div className="px-10 pt-8 pb-4 shrink-0">
                   <div className="flex items-center justify-between mb-5">
                     <div className="flex items-center gap-2.5">
@@ -407,13 +593,11 @@ export default function SignupModal({ isOpen, onClose, onLoginClick }: SignupMod
                     </button>
                   </div>
 
-                  {/* Progress bar */}
+                  {/* Progress */}
                   <div className="h-1.5 w-full bg-gray-100 rounded-full overflow-hidden">
-                    <motion.div
-                      className="h-full bg-orange-500 rounded-full"
-                      animate={{ width: `${((step + 1) / TOTAL) * 100}%` }}
-                      transition={{ duration: 0.35, ease: 'easeInOut' }}
-                    />
+                    <motion.div className="h-full bg-orange-500 rounded-full"
+                      animate={{ width:`${((step + 1) / TOTAL) * 100}%` }}
+                      transition={{ duration: 0.35, ease:'easeInOut' }} />
                   </div>
                   <div className="flex justify-between mt-1.5">
                     <span className="text-xs text-gray-400">Step {step + 1} of {TOTAL}</span>
@@ -421,20 +605,18 @@ export default function SignupModal({ isOpen, onClose, onLoginClick }: SignupMod
                   </div>
                 </div>
 
-                {/* Animated content area */}
-                <div className="flex-1 overflow-hidden relative px-10">
+                {/* Animated step */}
+                <div className="flex-1 overflow-y-auto px-10">
                   <AnimatePresence mode="wait" custom={dir}>
                     <motion.div
                       key={step}
                       custom={dir}
                       variants={slide}
-                      initial="enter"
-                      animate="center"
-                      exit="exit"
-                      transition={{ duration: 0.22, ease: 'easeInOut' }}
-                      className="flex flex-col gap-6 pt-2 pb-8 h-full"
+                      initial="enter" animate="center" exit="exit"
+                      transition={{ duration: 0.22, ease:'easeInOut' }}
+                      className="flex flex-col gap-5 pt-2 pb-8"
                     >
-                      {/* Field heading */}
+                      {/* Heading */}
                       <div>
                         <h1 id="su-title" className="text-2xl font-bold text-gray-900 mb-2 leading-snug">
                           {STEPS[step].title}
@@ -445,15 +627,13 @@ export default function SignupModal({ isOpen, onClose, onLoginClick }: SignupMod
                       </div>
 
                       {/* Input */}
-                      <div className="flex-1">
+                      <div>
                         {renderField()}
-
-                        {/* Error */}
                         <AnimatePresence>
                           {error && (
                             <motion.p role="alert"
-                              initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }}
-                              exit={{ opacity: 0, y: -4 }} transition={{ duration: 0.15 }}
+                              initial={{ opacity:0, y:-4 }} animate={{ opacity:1, y:0 }}
+                              exit={{ opacity:0, y:-4 }} transition={{ duration:0.15 }}
                               className="text-xs text-red-500 mt-2 pl-1">
                               {error}
                             </motion.p>
@@ -462,7 +642,7 @@ export default function SignupModal({ isOpen, onClose, onLoginClick }: SignupMod
                       </div>
 
                       {/* Navigation */}
-                      <div className="flex flex-col gap-3 mt-auto">
+                      <div className="flex flex-col gap-3 mt-2">
                         <div className="flex gap-3">
                           {step > 0 && (
                             <button type="button" onClick={back}
@@ -471,7 +651,7 @@ export default function SignupModal({ isOpen, onClose, onLoginClick }: SignupMod
                             </button>
                           )}
                           <motion.button
-                            type="button" onClick={advance} disabled={isLoading} whileTap={{ scale: 0.98 }}
+                            type="button" onClick={advance} disabled={isLoading} whileTap={{ scale:0.98 }}
                             className="flex-1 py-3.5 rounded-2xl bg-orange-500 hover:bg-orange-600 text-white font-bold text-sm tracking-wide transition-colors disabled:opacity-70 flex items-center justify-center gap-2">
                             {isLoading
                               ? <span className="inline-block w-5 h-5 border-2 border-white/40 border-t-white rounded-full animate-spin" />
@@ -479,15 +659,14 @@ export default function SignupModal({ isOpen, onClose, onLoginClick }: SignupMod
                           </motion.button>
                         </div>
 
-                        {/* Skip for avatar */}
                         {STEPS[step].key === 'avatar' && (
-                          <button type="button" onClick={() => { setDir(1); setStep(s => s + 1); }}
+                          <button type="button"
+                            onClick={() => { setDir(1); setStep(s => s + 1); }}
                             className="text-xs text-gray-400 hover:text-gray-600 text-center transition-colors">
                             Skip for now
                           </button>
                         )}
 
-                        {/* Back to login — only on step 0 */}
                         {step === 0 && (
                           <div className="flex flex-col items-center gap-2.5 mt-1">
                             <p className="text-xs text-gray-400">Already have an account?</p>
