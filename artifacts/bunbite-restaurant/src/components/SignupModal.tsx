@@ -173,6 +173,7 @@ const STEPS = [
   { key:'username',  title:'Pick a unique username',      desc:'Your public handle on BunBite. Min 3 characters — letters, numbers, and underscores only. No spaces.' },
   { key:'email',     title:"What's your email address?",  desc:`We'll send order confirmations and account updates here. Accepted providers: ${ALLOWED_DOMAINS.join(', ')}.` },
   { key:'phone',     title:"What's your phone number?",   desc:'Select your country code, then enter your phone number (digits only). Used for delivery updates and 2FA.' },
+  { key:'terms',     title:'Terms & Conditions',          desc:'Please read and agree to our Terms & Conditions and Privacy Policy to complete your registration.' },
 ];
 
 const TOTAL = STEPS.length;
@@ -217,8 +218,9 @@ export default function SignupModal({ isOpen, onClose, onLoginClick }: SignupMod
   const [phoneCode,   setPhoneCode]   = useState('+1');
   const [phoneNumber, setPhoneNumber] = useState('');
 
-  const [error,     setError]     = useState('');
-  const [isLoading, setIsLoading] = useState(false);
+  const [error,         setError]         = useState('');
+  const [isLoading,     setIsLoading]     = useState(false);
+  const [termsSubStep,  setTermsSubStep]  = useState<0 | 1>(0); // 0 = T&C, 1 = Privacy Policy
 
   /* Pre-fill phone code when country changes */
   useEffect(() => {
@@ -271,6 +273,7 @@ export default function SignupModal({ isOpen, onClose, onLoginClick }: SignupMod
         if (!phoneNumber.trim()) return 'Phone number is required.';
         if (!/^\d{4,15}$/.test(phoneNumber)) return 'Enter 4–15 digits, no spaces or dashes.';
         return '';
+      case 'terms': return '';
       default: return '';
     }
   };
@@ -279,11 +282,22 @@ export default function SignupModal({ isOpen, onClose, onLoginClick }: SignupMod
     const err = validate();
     if (err) { setError(err); return; }
     setError('');
+    // Terms step: advance sub-step first, then submit on I Agree
+    if (STEPS[step].key === 'terms') {
+      if (termsSubStep === 0) { setTermsSubStep(1); return; }
+      else { submit(); return; }
+    }
     if (step < TOTAL - 1) { setDir(1); setStep(s => s + 1); }
     else submit();
   };
 
-  const back = () => { setError(''); setDir(-1); setStep(s => s - 1); };
+  const back = () => {
+    setError('');
+    // Reset terms sub-step so T&C is always shown first on re-entry
+    if (STEPS[step].key === 'terms') setTermsSubStep(0);
+    setDir(-1);
+    setStep(s => s - 1);
+  };
 
   const submit = () => {
     setIsLoading(true);
@@ -297,7 +311,7 @@ export default function SignupModal({ isOpen, onClose, onLoginClick }: SignupMod
     setBirthMonth(''); setBirthDay(''); setBirthYear('');
     setGender(''); setPassword(''); setShowPw(false); setAvatar(null);
     setUsername(''); setEmail(''); setPhoneCode('+1'); setPhoneNumber('');
-    setError(''); setIsLoading(false);
+    setError(''); setIsLoading(false); setTermsSubStep(0);
   };
 
   /* ── Per-step input ── */
@@ -462,18 +476,29 @@ export default function SignupModal({ isOpen, onClose, onLoginClick }: SignupMod
           onChange={e => { setEmail(e.target.value); setError(''); }}
           onKeyDown={e => e.key === 'Enter' && advance()}
           className={inputCls(error)} />
-        {/* Allowed domains hint */}
+        {/* Clickable domain chips */}
         <div className="flex flex-wrap gap-1.5">
-          {ALLOWED_DOMAINS.map(d => (
-            <span key={d}
-              className={`text-xs px-2.5 py-1 rounded-full font-medium transition-colors ${
-                email.toLowerCase().endsWith('@' + d)
-                  ? 'bg-green-100 text-green-600'
-                  : 'bg-gray-100 text-gray-400'
-              }`}>
-              @{d}
-            </span>
-          ))}
+          {ALLOWED_DOMAINS.map(d => {
+            const active = email.toLowerCase().endsWith('@' + d);
+            return (
+              <button
+                key={d}
+                type="button"
+                onClick={() => {
+                  const prefix = email.includes('@') ? email.split('@')[0] : email;
+                  if (!prefix.trim()) return; // nothing typed yet — ignore tap
+                  setEmail(`${prefix}@${d}`);
+                  setError('');
+                }}
+                className={`text-xs px-2.5 py-1 rounded-full font-medium transition-colors cursor-pointer ${
+                  active
+                    ? 'bg-green-100 text-green-600 ring-1 ring-green-300'
+                    : 'bg-gray-100 text-gray-400 hover:bg-orange-50 hover:text-orange-500'
+                }`}>
+                @{d}
+              </button>
+            );
+          })}
         </div>
       </div>
     );
@@ -504,6 +529,45 @@ export default function SignupModal({ isOpen, onClose, onLoginClick }: SignupMod
           onKeyDown={e => e.key === 'Enter' && advance()}
           className={`${inputCls(error)} flex-1`}
         />
+      </div>
+    );
+
+    /* Terms & Conditions / Privacy Policy */
+    if (key === 'terms') return (
+      <div className="flex flex-col gap-3">
+        <div className="h-56 overflow-y-auto bg-gray-50 rounded-2xl p-5 text-sm text-gray-500 leading-relaxed border border-gray-100">
+          {termsSubStep === 0 ? (
+            <>
+              <p className="font-semibold text-gray-700 mb-3">1. Acceptance of Terms</p>
+              <p className="mb-3">By creating a BunBite account you agree to be bound by these Terms & Conditions. If you do not agree, please do not use our service. We reserve the right to update these terms at any time; continued use of the service constitutes your acceptance of any changes.</p>
+              <p className="font-semibold text-gray-700 mb-3">2. Use of the Service</p>
+              <p className="mb-3">BunBite grants you a limited, non-exclusive, non-transferable licence to access and use the platform solely for personal, non-commercial purposes. You may not reproduce, redistribute, sell, or exploit any portion of the service without prior written consent.</p>
+              <p className="font-semibold text-gray-700 mb-3">3. User Accounts</p>
+              <p className="mb-3">You are responsible for maintaining the confidentiality of your account credentials. You agree to notify us immediately of any unauthorised use of your account. BunBite will not be liable for any losses arising from unauthorised access due to your failure to protect your credentials.</p>
+              <p className="font-semibold text-gray-700 mb-3">4. Orders & Payments</p>
+              <p className="mb-3">All orders placed through BunBite are subject to availability and confirmation. Prices are inclusive of applicable taxes unless stated otherwise. We reserve the right to refuse or cancel any order at our discretion.</p>
+              <p className="font-semibold text-gray-700 mb-3">5. Intellectual Property</p>
+              <p className="mb-3">All content on this platform — including logos, images, text, and software — is the exclusive property of BunBite or its licensors and is protected by applicable intellectual property laws.</p>
+              <p className="font-semibold text-gray-700 mb-3">6. Limitation of Liability</p>
+              <p>BunBite shall not be liable for any indirect, incidental, special, or consequential damages arising from your use of the service. Our total liability shall not exceed the amount paid by you in the six months preceding the claim.</p>
+            </>
+          ) : (
+            <>
+              <p className="font-semibold text-gray-700 mb-3">1. Information We Collect</p>
+              <p className="mb-3">We collect information you provide directly (name, email, phone number, date of birth) and information generated by your use of the service (order history, preferences, device data). We may also receive information from third-party partners to improve our service.</p>
+              <p className="font-semibold text-gray-700 mb-3">2. How We Use Your Information</p>
+              <p className="mb-3">Your data is used to process orders, personalise your experience, send promotional offers (with your consent), improve our platform, and comply with legal obligations. We will never sell your personal data to third parties.</p>
+              <p className="font-semibold text-gray-700 mb-3">3. Data Sharing</p>
+              <p className="mb-3">We may share your information with trusted service providers (delivery partners, payment processors) who are contractually obligated to keep it confidential. We may also disclose data when required by law or to protect our rights.</p>
+              <p className="font-semibold text-gray-700 mb-3">4. Cookies</p>
+              <p className="mb-3">We use cookies and similar tracking technologies to enhance your browsing experience, analyse usage patterns, and serve relevant advertisements. You can control cookie settings through your browser preferences.</p>
+              <p className="font-semibold text-gray-700 mb-3">5. Data Retention</p>
+              <p className="mb-3">We retain your personal data for as long as your account is active or as required by law. You may request deletion of your data at any time by contacting our support team.</p>
+              <p className="font-semibold text-gray-700 mb-3">6. Your Rights</p>
+              <p>You have the right to access, correct, or delete your personal data. You may also object to processing or request data portability. To exercise these rights, please contact privacy@bunbite.com.</p>
+            </>
+          )}
+        </div>
       </div>
     );
 
@@ -618,10 +682,16 @@ export default function SignupModal({ isOpen, onClose, onLoginClick }: SignupMod
                       {/* Heading */}
                       <div>
                         <h1 id="su-title" className="text-2xl font-bold text-gray-900 mb-2 leading-snug">
-                          {STEPS[step].title}
+                          {STEPS[step].key === 'terms'
+                            ? (termsSubStep === 0 ? 'Terms & Conditions' : 'Privacy Policy')
+                            : STEPS[step].title}
                         </h1>
                         <p className="text-sm text-gray-400 leading-relaxed max-w-md">
-                          {STEPS[step].desc}
+                          {STEPS[step].key === 'terms'
+                            ? (termsSubStep === 0
+                                ? 'Please read our Terms & Conditions carefully before continuing.'
+                                : 'Please review our Privacy Policy to understand how we handle your data.')
+                            : STEPS[step].desc}
                         </p>
                       </div>
 
@@ -654,7 +724,7 @@ export default function SignupModal({ isOpen, onClose, onLoginClick }: SignupMod
                             className="flex-1 py-3.5 rounded-2xl bg-orange-500 hover:bg-orange-600 text-white font-bold text-sm tracking-wide transition-colors disabled:opacity-70 flex items-center justify-center gap-2">
                             {isLoading
                               ? <span className="inline-block w-5 h-5 border-2 border-white/40 border-t-white rounded-full animate-spin" />
-                              : step === TOTAL - 1 ? 'Create Account ✓' : 'Continue →'}
+                              : STEPS[step].key === 'terms' && termsSubStep === 1 ? 'I Agree ✓' : 'Continue →'}
                           </motion.button>
                         </div>
 
