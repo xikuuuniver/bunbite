@@ -300,15 +300,15 @@ export default function LoginModal({ isOpen, onClose }: LoginModalProps) {
                 </form>
 
                 {/* Sign up */}
-                <p className="text-center text-xs text-gray-400 mt-5">
-                  Don't have an account?{' '}
+                <div className="flex flex-col items-center gap-2.5 mt-5">
+                  <p className="text-xs text-gray-400">Don't have an account?</p>
                   <button
                     type="button"
-                    className="text-orange-500 font-semibold hover:underline"
+                    className="w-full py-4 rounded-xl bg-gray-900 hover:bg-black text-white font-semibold text-sm tracking-wide transition-colors"
                   >
-                    Signup
+                    Create One
                   </button>
-                </p>
+                </div>
               </div>
             </motion.div>
           </div>
