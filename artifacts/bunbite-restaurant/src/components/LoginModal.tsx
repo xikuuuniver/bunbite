@@ -1,74 +1,79 @@
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Eye, EyeOff } from 'lucide-react';
 import loginCharacters from '@/assets/login-characters.png';
 import bunbiteLogo from '@/assets/bunbite-logo.png';
+import type { AuthUser } from '@/context/AuthContext';
 
 interface LoginModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSignupClick: () => void;
+  onLogin: (user: AuthUser) => void;
 }
 
 interface FormErrors {
-  email?: string;
+  username?: string;
   password?: string;
   general?: string;
 }
 
-function validateEmail(value: string): string | undefined {
-  if (!value.trim()) return 'Email address is required.';
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value))
-    return 'Please enter a valid email address.';
-}
+/* Hardcoded credentials (no database yet) */
+const HARDCODED_USERNAME = 'xiku.univer';
+const HARDCODED_PASSWORD  = 'Xiku2009aps';
 
-function validatePassword(value: string): string | undefined {
-  if (!value) return 'Password is required.';
-  if (value.length < 8) return 'Password must be at least 8 characters.';
-}
+export default function LoginModal({ isOpen, onClose, onSignupClick, onLogin }: LoginModalProps) {
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-export default function LoginModal({ isOpen, onClose, onSignupClick }: LoginModalProps) {
   const [showPassword, setShowPassword] = useState(false);
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [errors, setErrors] = useState<FormErrors>({});
-  const [touched, setTouched] = useState<{ email?: boolean; password?: boolean }>({});
-  const [isLoading, setIsLoading] = useState(false);
+  const [username,     setUsername]     = useState('');
+  const [password,     setPassword]     = useState('');
+  const [errors,       setErrors]       = useState<FormErrors>({});
+  const [touched,      setTouched]      = useState<{ username?: boolean; password?: boolean }>({});
+  const [isLoading,    setIsLoading]    = useState(false);
 
-  const handleBlur = (field: 'email' | 'password') => {
+  const validateUsername = (v: string) => (!v.trim() ? 'Username is required.' : undefined);
+  const validatePassword = (v: string) => (!v ? 'Password is required.' : undefined);
+
+  const handleBlur = (field: 'username' | 'password') => {
     setTouched((t) => ({ ...t, [field]: true }));
-    if (field === 'email') {
-      setErrors((e) => ({ ...e, email: validateEmail(email) }));
-    } else {
-      setErrors((e) => ({ ...e, password: validatePassword(password) }));
-    }
+    if (field === 'username') setErrors((e) => ({ ...e, username: validateUsername(username) }));
+    else                       setErrors((e) => ({ ...e, password: validatePassword(password) }));
   };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    const usernameErr = validateUsername(username);
+    const passErr     = validatePassword(password);
+    setTouched({ username: true, password: true });
 
-    const emailErr = validateEmail(email);
-    const passErr = validatePassword(password);
-    setTouched({ email: true, password: true });
-
-    if (emailErr || passErr) {
-      setErrors({ email: emailErr, password: passErr });
+    if (usernameErr || passErr) {
+      setErrors({ username: usernameErr, password: passErr });
       return;
     }
 
     setErrors({});
     setIsLoading(true);
 
-    // Simulate auth — always fails for demo (no real backend yet)
-    setTimeout(() => {
+    timerRef.current = setTimeout(() => {
       setIsLoading(false);
-      setErrors({ general: 'Incorrect email or password. Please try again.' });
-    }, 1200);
+
+      if (username === HARDCODED_USERNAME && password === HARDCODED_PASSWORD) {
+        onLogin({ username: HARDCODED_USERNAME, avatar: null });
+        handleClose();
+      } else {
+        setErrors({ general: 'Incorrect username or password. Please try again.' });
+      }
+    }, 900);
   };
 
+  /* Cancel any in-flight timer on close or unmount */
+  useEffect(() => () => { if (timerRef.current) clearTimeout(timerRef.current); }, []);
+
   const handleClose = () => {
+    if (timerRef.current) { clearTimeout(timerRef.current); timerRef.current = null; }
     onClose();
-    setEmail('');
+    setUsername('');
     setPassword('');
     setErrors({});
     setTouched({});
@@ -107,9 +112,7 @@ export default function LoginModal({ isOpen, onClose, onSignupClick }: LoginModa
               {/* ── LEFT PANEL ── */}
               <div
                 className="relative hidden sm:flex flex-col justify-between w-[44%] shrink-0 rounded-2xl m-5 p-9 overflow-hidden"
-                style={{
-                  background: 'linear-gradient(150deg, #FB923C 0%, #F97316 50%, #FCD0A1 100%)',
-                }}
+                style={{ background: 'linear-gradient(150deg, #FB923C 0%, #F97316 50%, #FCD0A1 100%)' }}
               >
                 {/* Noise texture */}
                 <div
@@ -124,9 +127,7 @@ export default function LoginModal({ isOpen, onClose, onSignupClick }: LoginModa
                 <div className="relative z-10">
                   <h2 className="text-white font-bold text-3xl leading-snug mb-1">
                     Order delicious<br />burgers with<br />
-                    <span className="underline underline-offset-[6px] decoration-white/60">
-                      your BunBite.
-                    </span>
+                    <span className="underline underline-offset-[6px] decoration-white/60">your BunBite.</span>
                   </h2>
                   <p className="text-white/80 text-sm mt-5 leading-relaxed max-w-[240px]">
                     Manage your orders, cart, and payments all in one place with your BunBite account.
@@ -157,55 +158,47 @@ export default function LoginModal({ isOpen, onClose, onSignupClick }: LoginModa
 
                 {/* Logo */}
                 <div className="flex items-center gap-3 mb-7">
-                  <img
-                    src={bunbiteLogo}
-                    alt="BunBite logo"
-                    className="w-11 h-11 object-contain drop-shadow-sm"
-                  />
+                  <img src={bunbiteLogo} alt="BunBite logo" className="w-11 h-11 object-contain drop-shadow-sm" />
                   <span className="font-bold text-gray-800 text-lg tracking-wide">BunBite</span>
                 </div>
 
                 {/* Heading */}
-                <h1 id="login-title" className="text-4xl font-bold text-gray-900 mb-1.5">
-                  Welcome Back
-                </h1>
+                <h1 id="login-title" className="text-4xl font-bold text-gray-900 mb-1.5">Welcome Back</h1>
                 <p className="text-sm text-gray-400 mb-8">Please login to your account</p>
 
                 {/* Form */}
                 <form onSubmit={handleSubmit} className="flex flex-col gap-1" noValidate>
-                  {/* Email */}
+                  {/* Username */}
                   <div className="flex flex-col gap-1 mb-2">
                     <input
-                      type="email"
-                      placeholder="Email address"
-                      value={email}
+                      type="text"
+                      placeholder="Username"
+                      value={username}
                       onChange={(e) => {
-                        setEmail(e.target.value);
-                        if (touched.email)
-                          setErrors((err) => ({ ...err, email: validateEmail(e.target.value) }));
+                        setUsername(e.target.value);
+                        if (touched.username)
+                          setErrors((err) => ({ ...err, username: validateUsername(e.target.value) }));
                       }}
-                      onBlur={() => handleBlur('email')}
-                      aria-label="Email address"
-                      aria-describedby={errors.email ? 'email-error' : undefined}
-                      aria-invalid={!!errors.email}
-                      className={`w-full px-5 py-4 rounded-xl text-sm text-gray-700 placeholder-gray-400 focus:outline-none focus:ring-2 transition
-                        ${errors.email
+                      onBlur={() => handleBlur('username')}
+                      aria-label="Username"
+                      aria-describedby={errors.username ? 'username-error' : undefined}
+                      aria-invalid={!!errors.username}
+                      className={`w-full px-5 py-4 rounded-xl text-sm text-gray-700 placeholder-gray-400 focus:outline-none focus:ring-2 transition ${
+                        errors.username
                           ? 'bg-red-50 border border-red-300 focus:ring-red-300/50'
                           : 'bg-gray-100 border border-transparent focus:ring-orange-400/50 focus:bg-white'
-                        }`}
+                      }`}
                     />
                     <AnimatePresence>
-                      {errors.email && (
+                      {errors.username && (
                         <motion.p
-                          id="email-error"
+                          id="username-error"
                           role="alert"
-                          initial={{ opacity: 0, y: -4 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          exit={{ opacity: 0, y: -4 }}
-                          transition={{ duration: 0.15 }}
+                          initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }}
+                          exit={{ opacity: 0, y: -4 }} transition={{ duration: 0.15 }}
                           className="text-xs text-red-500 pl-1"
                         >
-                          {errors.email}
+                          {errors.username}
                         </motion.p>
                       )}
                     </AnimatePresence>
@@ -227,11 +220,11 @@ export default function LoginModal({ isOpen, onClose, onSignupClick }: LoginModa
                         aria-label="Password"
                         aria-describedby={errors.password ? 'password-error' : undefined}
                         aria-invalid={!!errors.password}
-                        className={`w-full px-5 py-4 pr-12 rounded-xl text-sm text-gray-700 placeholder-gray-400 focus:outline-none focus:ring-2 transition
-                          ${errors.password
+                        className={`w-full px-5 py-4 pr-12 rounded-xl text-sm text-gray-700 placeholder-gray-400 focus:outline-none focus:ring-2 transition ${
+                          errors.password
                             ? 'bg-red-50 border border-red-300 focus:ring-red-300/50'
                             : 'bg-gray-100 border border-transparent focus:ring-orange-400/50 focus:bg-white'
-                          }`}
+                        }`}
                       />
                       <button
                         type="button"
@@ -247,10 +240,8 @@ export default function LoginModal({ isOpen, onClose, onSignupClick }: LoginModa
                         <motion.p
                           id="password-error"
                           role="alert"
-                          initial={{ opacity: 0, y: -4 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          exit={{ opacity: 0, y: -4 }}
-                          transition={{ duration: 0.15 }}
+                          initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }}
+                          exit={{ opacity: 0, y: -4 }} transition={{ duration: 0.15 }}
                           className="text-xs text-red-500 pl-1"
                         >
                           {errors.password}
@@ -261,23 +252,18 @@ export default function LoginModal({ isOpen, onClose, onSignupClick }: LoginModa
 
                   {/* Forgot password */}
                   <div className="text-right mb-3">
-                    <button
-                      type="button"
-                      className="text-xs text-gray-400 hover:text-orange-500 transition-colors"
-                    >
+                    <button type="button" className="text-xs text-gray-400 hover:text-orange-500 transition-colors">
                       Forgot password?
                     </button>
                   </div>
 
-                  {/* General error (wrong credentials) */}
+                  {/* General error */}
                   <AnimatePresence>
                     {errors.general && (
                       <motion.p
                         role="alert"
-                        initial={{ opacity: 0, y: -4 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, y: -4 }}
-                        transition={{ duration: 0.15 }}
+                        initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -4 }} transition={{ duration: 0.15 }}
                         className="text-xs text-red-500 pl-1 -mt-1 mb-2"
                       >
                         {errors.general}
@@ -285,18 +271,16 @@ export default function LoginModal({ isOpen, onClose, onSignupClick }: LoginModa
                     )}
                   </AnimatePresence>
 
-                  {/* Login button */}
+                  {/* Submit */}
                   <motion.button
                     type="submit"
                     disabled={isLoading}
                     whileTap={{ scale: 0.98 }}
                     className="w-full py-4 rounded-xl bg-orange-500 hover:bg-orange-600 text-white font-semibold text-sm tracking-wide transition-colors disabled:opacity-70 flex items-center justify-center"
                   >
-                    {isLoading ? (
-                      <span className="inline-block w-5 h-5 border-2 border-white/40 border-t-white rounded-full animate-spin" />
-                    ) : (
-                      'Login'
-                    )}
+                    {isLoading
+                      ? <span className="inline-block w-5 h-5 border-2 border-white/40 border-t-white rounded-full animate-spin" />
+                      : 'Login'}
                   </motion.button>
                 </form>
 

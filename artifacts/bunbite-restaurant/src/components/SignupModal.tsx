@@ -3,11 +3,13 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { X, Eye, EyeOff, Camera, User, ChevronLeft, Check } from 'lucide-react';
 import loginCharacters from '@/assets/login-characters.png';
 import bunbiteLogo from '@/assets/bunbite-logo.png';
+import type { AuthUser } from '@/context/AuthContext';
 
 interface SignupModalProps {
   isOpen: boolean;
   onClose: () => void;
   onLoginClick: () => void;
+  onLogin: (user: AuthUser) => void;
 }
 
 /* ─────────────────────────────────────────
@@ -196,8 +198,12 @@ const selectCls = (err?: string) => `${inputCls(err)} appearance-none cursor-poi
 /* ─────────────────────────────────────────
    Component
 ───────────────────────────────────────── */
-export default function SignupModal({ isOpen, onClose, onLoginClick }: SignupModalProps) {
-  const fileRef = useRef<HTMLInputElement>(null);
+export default function SignupModal({ isOpen, onClose, onLoginClick, onLogin }: SignupModalProps) {
+  const fileRef  = useRef<HTMLInputElement>(null);
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  /* Cancel any in-flight submit timer on unmount */
+  useEffect(() => () => { if (timerRef.current) clearTimeout(timerRef.current); }, []);
 
   const [step, setStep]   = useState(0);
   const [dir,  setDir]    = useState(1);
@@ -301,10 +307,15 @@ export default function SignupModal({ isOpen, onClose, onLoginClick }: SignupMod
 
   const submit = () => {
     setIsLoading(true);
-    setTimeout(() => { setIsLoading(false); handleClose(); }, 1500);
+    timerRef.current = setTimeout(() => {
+      setIsLoading(false);
+      onLogin({ username, firstName, lastName, avatar });
+      handleClose();
+    }, 1500);
   };
 
   const handleClose = () => {
+    if (timerRef.current) { clearTimeout(timerRef.current); timerRef.current = null; }
     onClose();
     setStep(0); setDir(1);
     setCountry(''); setFirstName(''); setLastName('');
