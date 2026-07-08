@@ -37,9 +37,14 @@ type PopupKey = 'orders' | 'preorder' | 'favorites';
 
 /* Mock data (no backend yet) */
 const MOCK_ORDERS = [
-  { id: '#BB-4821', items: '2x Cheesy Boom, 1x Fries', status: 'Preparing', statusColor: 'bg-amber-100 text-amber-700', total: 32.5, time: '5 min ago' },
-  { id: '#BB-4790', items: '1x Smoky Burst, 1x Coke', status: 'Out for delivery', statusColor: 'bg-blue-100 text-blue-700', total: 17.0, time: '38 min ago' },
-  { id: '#BB-4712', items: '1x Midnight Bite', status: 'Delivered', statusColor: 'bg-green-100 text-green-700', total: 12.0, time: 'Yesterday' },
+  { id: '#BB-4821', items: '2x Cheesy Boom, 1x Fries', status: 'Processing', statusColor: 'bg-amber-100 text-amber-700', total: 32.5, time: '5 min ago' },
+  { id: '#BB-4790', items: '1x Smoky Burst, 1x Coke', status: 'Delivered', statusColor: 'bg-blue-100 text-blue-700', total: 17.0, time: '38 min ago' },
+  { id: '#BB-4712', items: '1x Midnight Bite', status: 'Completed', statusColor: 'bg-green-100 text-green-700', total: 12.0, time: 'Yesterday' },
+];
+
+const MOCK_UNPAID_ORDERS = [
+  { id: '#BB-4655', items: '1x Cheesy Boom, 1x Coke', total: 15.5, time: '2 hours ago' },
+  { id: '#BB-4600', items: '2x Smoky Burst', total: 26.0, time: 'Yesterday' },
 ];
 
 const MOCK_PREORDERS = [
@@ -96,11 +101,17 @@ export default function Navbar() {
   const isPopupOpen = (scope: 'desktop' | 'mobile', key: PopupKey) =>
     activePopup?.scope === scope && activePopup.key === key;
 
+  /* Unpaid orders are local mock state so "Pay Now" can visibly settle them */
+  const [unpaidOrders, setUnpaidOrders] = useState(MOCK_UNPAID_ORDERS);
+  const handlePayNow = (id: string) =>
+    setUnpaidOrders((prev) => prev.filter((order) => order.id !== id));
+
   /* ── Bubble pop-up content ── */
   const OrdersBubble = () => (
     <div className="w-80 max-w-[85vw]">
-      <p className="px-4 pt-4 pb-2 text-sm font-bold text-gray-800">Your Orders</p>
-      <div className="max-h-80 overflow-y-auto divide-y divide-gray-100">
+      {/* Orders */}
+      <p className="px-4 pt-4 pb-2 text-sm font-bold text-gray-800">Orders</p>
+      <div className="max-h-64 overflow-y-auto divide-y divide-gray-100">
         {MOCK_ORDERS.map((order) => (
           <div key={order.id} className="px-4 py-3 flex items-start justify-between gap-3">
             <div className="min-w-0">
@@ -117,6 +128,31 @@ export default function Navbar() {
           </div>
         ))}
       </div>
+
+      {/* Unpaid Orders */}
+      <p className="px-4 pt-3 pb-2 text-sm font-bold text-gray-800 border-t border-gray-100">Unpaid Orders</p>
+      {unpaidOrders.length === 0 ? (
+        <p className="px-4 pb-4 text-xs text-gray-400">No unpaid orders.</p>
+      ) : (
+        <div className="max-h-64 overflow-y-auto divide-y divide-gray-100">
+          {unpaidOrders.map((order) => (
+            <div key={order.id} className="px-4 py-3 flex items-center justify-between gap-3">
+              <div className="min-w-0">
+                <p className="text-sm font-semibold text-gray-800">{order.id}</p>
+                <p className="text-xs text-gray-500 truncate">{order.items}</p>
+                <p className="text-[11px] text-gray-400 mt-0.5">{order.time} · ${order.total.toFixed(2)}</p>
+              </div>
+              <button
+                onClick={() => handlePayNow(order.id)}
+                className="shrink-0 bg-secondary text-secondary-foreground text-xs font-bold px-3 py-1.5 rounded-full shadow-sm hover:brightness-105 active:scale-95 transition-transform"
+              >
+                Pay Now
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+      <div className="pb-1" />
     </div>
   );
 
