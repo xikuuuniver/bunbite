@@ -1,44 +1,92 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ChevronDown } from 'lucide-react';
+import { ChevronDown, ShoppingCart } from 'lucide-react';
 // @ts-ignore
 import midnightBiteImg from '@assets/generated_images/midnight-bite.jpg';
+// @ts-ignore
+import cheesyBoomImg from '@assets/generated_images/cheesy-boom.jpg';
+// @ts-ignore
+import smokyBurstImg from '@assets/generated_images/smoky-burst.jpg';
+// @ts-ignore
+import crispyChickenImg from '@assets/generated_images/crispy-chicken.jpg';
+// @ts-ignore
+import firePizzaImg from '@assets/generated_images/fire-pizza.jpg';
+// @ts-ignore
+import clubSandwichImg from '@assets/generated_images/club-sandwich.jpg';
+// @ts-ignore
+import goldenFriesImg from '@assets/generated_images/golden-fries.jpg';
+// @ts-ignore
+import icedDrinkImg from '@assets/generated_images/iced-drink.jpg';
+// @ts-ignore
+import chocolateLavaCakeImg from '@assets/generated_images/chocolate-lava-cake.jpg';
 
 const menuCategories = [
   {
     id: 'burger',
-    name: 'BURGER',
+    name: 'BURGERS',
     items: [
-      { name: 'Ocean Crunch', desc: 'Fresh crispy seafood burger with lettuce and special sauce', price: 16.00 },
-      { name: 'Golden Stack', desc: 'Double patty with caramelized onions and cheddar', price: 12.00 },
-      { name: 'Truffle Dream', desc: 'Truffle aioli, mushrooms, and swiss cheese', price: 15.00 },
-      { name: 'Chili Smash', desc: 'Spicy smash patty with jalapeños and chipotle mayo', price: 16.00 },
-    ]
-  },
-  {
-    id: 'sides',
-    name: 'SIDES',
-    items: [
-      { name: 'Loaded Fries', desc: 'Crispy fries topped with cheese sauce and bacon bits', price: 6.50 },
-      { name: 'Onion Rings', desc: 'Thick-cut, beer-battered golden onion rings', price: 5.50 },
-      { name: 'Mozzarella Sticks', desc: 'Served with house-made marinara sauce', price: 7.00 },
+      { name: 'Ocean Crunch', desc: 'Fresh crispy seafood burger with lettuce and special sauce', price: 16.00, image: smokyBurstImg },
+      { name: 'Golden Stack', desc: 'Double patty with caramelized onions and cheddar', price: 12.00, image: midnightBiteImg },
+      { name: 'Truffle Dream', desc: 'Truffle aioli, mushrooms, and swiss cheese', price: 15.00, image: cheesyBoomImg },
+      { name: 'Chili Smash', desc: 'Spicy smash patty with jalapeños and chipotle mayo', price: 16.00, image: smokyBurstImg },
     ]
   },
   {
     id: 'chicken',
     name: 'CHICKEN',
     items: [
-      { name: 'Spicy Bird', desc: 'Nashville hot chicken sandwich with pickles', price: 13.50 },
-      { name: 'Classic Crispy', desc: 'Buttermilk fried chicken with slaw', price: 12.50 },
+      { name: 'Spicy Bird', desc: 'Nashville hot chicken sandwich with pickles', price: 13.50, image: crispyChickenImg },
+      { name: 'Classic Crispy', desc: 'Buttermilk fried chicken with slaw', price: 12.50, image: crispyChickenImg },
+      { name: 'Honey Glazed Tenders', desc: 'Crispy tenders drizzled with hot honey', price: 11.00, image: crispyChickenImg },
+      { name: 'BBQ Chicken Bites', desc: 'Smoky BBQ glazed bite-sized chicken', price: 10.50, image: crispyChickenImg },
+    ]
+  },
+  {
+    id: 'pizza',
+    name: 'PIZZA',
+    items: [
+      { name: 'Pepperoni Classic', desc: 'Wood-fired crust with pepperoni and mozzarella', price: 17.00, image: firePizzaImg },
+      { name: 'Margherita', desc: 'San Marzano tomatoes, fresh basil, and buffalo mozzarella', price: 15.00, image: firePizzaImg },
+      { name: 'BBQ Chicken Pizza', desc: 'Smoky BBQ sauce, grilled chicken, and red onion', price: 18.00, image: firePizzaImg },
+      { name: 'Four Cheese', desc: 'Mozzarella, gorgonzola, parmesan, and provolone', price: 16.50, image: firePizzaImg },
+    ]
+  },
+  {
+    id: 'sandwiches',
+    name: 'SANDWICHES',
+    items: [
+      { name: 'Classic Club', desc: 'Triple-decker with turkey, bacon, lettuce, and tomato', price: 12.00, image: clubSandwichImg },
+      { name: 'Philly Cheesesteak', desc: 'Shaved steak, peppers, onions, and melted provolone', price: 14.00, image: clubSandwichImg },
+      { name: 'Grilled Veggie Melt', desc: 'Roasted vegetables with pesto and mozzarella', price: 11.00, image: clubSandwichImg },
+    ]
+  },
+  {
+    id: 'fries',
+    name: 'FRIES & SIDES',
+    items: [
+      { name: 'Loaded Fries', desc: 'Crispy fries topped with cheese sauce and bacon bits', price: 6.50, image: goldenFriesImg },
+      { name: 'Classic Fries', desc: 'Golden crispy fries with sea salt', price: 4.50, image: goldenFriesImg },
+      { name: 'Onion Rings', desc: 'Thick-cut, beer-battered golden onion rings', price: 5.50, image: goldenFriesImg },
+      { name: 'Mozzarella Sticks', desc: 'Served with house-made marinara sauce', price: 7.00, image: goldenFriesImg },
     ]
   },
   {
     id: 'drinks',
     name: 'DRINKS',
     items: [
-      { name: 'Vanilla Shake', desc: 'Thick hand-spun vanilla bean milkshake', price: 6.00 },
-      { name: 'Craft Cola', desc: 'Artisanal cane sugar cola', price: 3.50 },
-      { name: 'Lemonade', desc: 'Fresh squeezed daily', price: 4.00 },
+      { name: 'Vanilla Shake', desc: 'Thick hand-spun vanilla bean milkshake', price: 6.00, image: icedDrinkImg },
+      { name: 'Craft Cola', desc: 'Artisanal cane sugar cola', price: 3.50, image: icedDrinkImg },
+      { name: 'Lemonade', desc: 'Fresh squeezed daily', price: 4.00, image: icedDrinkImg },
+      { name: 'Iced Berry Tea', desc: 'Cold-brewed black tea with mixed berries', price: 4.50, image: icedDrinkImg },
+    ]
+  },
+  {
+    id: 'desserts',
+    name: 'DESSERTS',
+    items: [
+      { name: 'Chocolate Lava Cake', desc: 'Warm molten center with vanilla ice cream', price: 8.00, image: chocolateLavaCakeImg },
+      { name: 'New York Cheesecake', desc: 'Creamy classic with a graham cracker crust', price: 7.50, image: chocolateLavaCakeImg },
+      { name: 'Churros', desc: 'Cinnamon sugar churros with chocolate dip', price: 6.50, image: chocolateLavaCakeImg },
     ]
   }
 ];
@@ -60,7 +108,7 @@ export default function DiscoverMenus() {
         >
           <h2 className="font-display text-4xl md:text-5xl text-primary mb-4">DISCOVER OUR MENUS</h2>
           <p className="text-foreground/80 max-w-2xl mx-auto text-lg">
-            A complete menu of handcrafted burgers, crispy sides, and refreshing drinks
+            A complete menu of handcrafted burgers, chicken, pizza, sandwiches, fries, drinks, and desserts
           </p>
         </motion.div>
 
@@ -108,27 +156,24 @@ export default function DiscoverMenus() {
                       className="group flex items-start sm:items-center gap-4 p-4 border-b border-primary/10 last:border-0 hover:bg-background/50 rounded-xl transition-colors"
                     >
                       <div className="hidden sm:block w-16 h-16 rounded-full overflow-hidden flex-shrink-0 border-2 border-transparent group-hover:border-secondary transition-colors">
-                        {/* Reusing thumbnail for all for simplicity, or could leave empty */}
-                        <img src={midnightBiteImg} alt="Thumbnail" className="w-full h-full object-cover" />
+                        <img src={item.image} alt={item.name} className="w-full h-full object-cover" />
                       </div>
-                      <div className="flex-1">
-                        <div className="flex justify-between items-baseline mb-1">
-                          <h4 className="font-display text-xl text-primary">{item.name}</h4>
-                          <span className="font-display text-lg text-secondary ml-4">${item.price.toFixed(2)}</span>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex justify-between items-baseline mb-1 gap-4">
+                          <h4 className="font-display text-xl text-primary truncate">{item.name}</h4>
+                          <span className="font-display text-lg text-secondary shrink-0">${item.price.toFixed(2)}</span>
                         </div>
                         <p className="text-sm text-foreground/70 pr-4">{item.desc}</p>
                       </div>
+                      <button
+                        className="shrink-0 flex items-center gap-1.5 bg-secondary text-secondary-foreground px-4 py-2 rounded-full font-bold text-sm hover:scale-105 active:scale-95 transition-transform shadow-md"
+                        data-testid={`button-buy-${activeCategory}-${i}`}
+                      >
+                        <ShoppingCart size={15} />
+                        Buy
+                      </button>
                     </div>
                   ))}
-                </div>
-                
-                <div className="mt-8 pt-6 border-t border-primary/10 flex justify-end">
-                  <button 
-                    className="bg-secondary text-secondary-foreground px-8 py-3 rounded-full font-bold hover:scale-105 active:scale-95 transition-transform shadow-md"
-                    data-testid={`button-order-${activeCategory}`}
-                  >
-                    Order {menuCategories.find(c => c.id === activeCategory)?.name.toLowerCase()} Now
-                  </button>
                 </div>
               </motion.div>
             </AnimatePresence>
