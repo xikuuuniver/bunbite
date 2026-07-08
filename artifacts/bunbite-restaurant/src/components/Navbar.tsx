@@ -21,10 +21,37 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover';
 import LoginModal from './LoginModal';
 import SignupModal from './SignupModal';
 import { useAuth } from '@/context/AuthContext';
 import type { AuthUser } from '@/context/AuthContext';
+// @ts-ignore
+import midnightBiteImg from '@assets/generated_images/midnight-bite.jpg';
+// @ts-ignore
+import cheesyBoomImg from '@assets/generated_images/cheesy-boom.jpg';
+// @ts-ignore
+import smokyBurstImg from '@assets/generated_images/smoky-burst.jpg';
+
+type PopupKey = 'orders' | 'preorder' | 'favorites';
+
+/* Mock data (no backend yet) */
+const MOCK_ORDERS = [
+  { id: '#BB-4821', items: '2x Cheesy Boom, 1x Fries', status: 'Preparing', statusColor: 'bg-amber-100 text-amber-700', total: 32.5, time: '5 min ago' },
+  { id: '#BB-4790', items: '1x Smoky Burst, 1x Coke', status: 'Out for delivery', statusColor: 'bg-blue-100 text-blue-700', total: 17.0, time: '38 min ago' },
+  { id: '#BB-4712', items: '1x Midnight Bite', status: 'Delivered', statusColor: 'bg-green-100 text-green-700', total: 12.0, time: 'Yesterday' },
+];
+
+const MOCK_PREORDERS = [
+  { id: '#PO-1042', items: '3x Cheesy Boom', when: 'Tomorrow, 12:30 PM', status: 'Confirmed', statusColor: 'bg-green-100 text-green-700' },
+  { id: '#PO-1039', items: '1x Smoky Burst, 2x Fries', when: 'Fri, Jul 10 · 7:00 PM', status: 'Pending', statusColor: 'bg-amber-100 text-amber-700' },
+];
+
+const MOCK_FAVORITES = [
+  { name: 'Cheesy Boom', price: 14.0, image: cheesyBoomImg },
+  { name: 'Smoky Burst', price: 13.0, image: smokyBurstImg },
+  { name: 'Midnight Bite', price: 12.0, image: midnightBiteImg },
+];
 
 /* Derive initials from a user object */
 function getInitials(user: AuthUser): string {
@@ -56,45 +83,146 @@ export default function Navbar() {
     if (element) element.scrollIntoView({ behavior: 'smooth' });
   };
 
+  /*
+   * Only one action bubble (orders / pre-order / favorites) open at a time.
+   * Scoped by which AuthActions instance (desktop vs. mobile) triggered it —
+   * both instances can be mounted simultaneously (mobile menu open on a
+   * narrow viewport while the CSS-hidden desktop instance stays in the DOM),
+   * so a plain shared key would open duplicate, mis-anchored popovers.
+   */
+  const [activePopup, setActivePopup] = useState<{ scope: 'desktop' | 'mobile'; key: PopupKey } | null>(null);
+  const togglePopup = (scope: 'desktop' | 'mobile', key: PopupKey) => (open: boolean) =>
+    setActivePopup(open ? { scope, key } : null);
+  const isPopupOpen = (scope: 'desktop' | 'mobile', key: PopupKey) =>
+    activePopup?.scope === scope && activePopup.key === key;
+
+  /* ── Bubble pop-up content ── */
+  const OrdersBubble = () => (
+    <div className="w-80 max-w-[85vw]">
+      <p className="px-4 pt-4 pb-2 text-sm font-bold text-gray-800">Your Orders</p>
+      <div className="max-h-80 overflow-y-auto divide-y divide-gray-100">
+        {MOCK_ORDERS.map((order) => (
+          <div key={order.id} className="px-4 py-3 flex items-start justify-between gap-3">
+            <div className="min-w-0">
+              <p className="text-sm font-semibold text-gray-800">{order.id}</p>
+              <p className="text-xs text-gray-500 truncate">{order.items}</p>
+              <p className="text-[11px] text-gray-400 mt-0.5">{order.time}</p>
+            </div>
+            <div className="flex flex-col items-end gap-1 shrink-0">
+              <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${order.statusColor}`}>
+                {order.status}
+              </span>
+              <span className="text-xs font-bold text-gray-700">${order.total.toFixed(2)}</span>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+
+  const PreOrderBubble = () => (
+    <div className="w-80 max-w-[85vw]">
+      <p className="px-4 pt-4 pb-2 text-sm font-bold text-gray-800">Pre-Orders</p>
+      <div className="max-h-80 overflow-y-auto divide-y divide-gray-100">
+        {MOCK_PREORDERS.map((order) => (
+          <div key={order.id} className="px-4 py-3 flex items-start justify-between gap-3">
+            <div className="min-w-0">
+              <p className="text-sm font-semibold text-gray-800">{order.id}</p>
+              <p className="text-xs text-gray-500 truncate">{order.items}</p>
+              <p className="text-[11px] text-gray-400 mt-0.5">{order.when}</p>
+            </div>
+            <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full shrink-0 ${order.statusColor}`}>
+              {order.status}
+            </span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+
+  const FavoritesBubble = () => (
+    <div className="w-80 max-w-[85vw]">
+      <p className="px-4 pt-4 pb-2 text-sm font-bold text-gray-800">Your Favorites</p>
+      <div className="max-h-80 overflow-y-auto divide-y divide-gray-100">
+        {MOCK_FAVORITES.map((item) => (
+          <div key={item.name} className="px-4 py-3 flex items-center gap-3">
+            <img src={item.image} alt={item.name} className="w-11 h-11 rounded-xl object-cover shrink-0" />
+            <div className="min-w-0 flex-1">
+              <p className="text-sm font-semibold text-gray-800 truncate">{item.name}</p>
+              <p className="text-xs text-gray-500">${item.price.toFixed(2)}</p>
+            </div>
+            <Heart size={16} className="text-secondary fill-secondary shrink-0" />
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+
+  const bubbleContentClass =
+    'p-0 w-auto rounded-3xl border border-gray-100 shadow-2xl overflow-hidden';
+
   /* ── Authenticated action icons ── */
-  const AuthActions = ({ mobile = false }: { mobile?: boolean }) => (
+  const AuthActions = ({ mobile = false }: { mobile?: boolean }) => {
+    const scope = mobile ? 'mobile' : 'desktop';
+    return (
     <div className={`flex items-center ${mobile ? 'gap-6 justify-center' : 'gap-3'}`}>
       {/* Orders */}
-      <button
-        aria-label="Orders"
-        className={`relative flex items-center justify-center rounded-full transition-colors
-          ${mobile
-            ? 'w-14 h-14 bg-white/10 hover:bg-white/20 text-white'
-            : 'w-10 h-10 bg-white/15 hover:bg-white/25 text-white'}`}
-      >
-        <ClipboardList size={mobile ? 22 : 18} />
-        {/* Badge placeholder */}
-        <span className="absolute -top-0.5 -right-0.5 w-4 h-4 rounded-full bg-secondary text-[9px] font-bold text-secondary-foreground flex items-center justify-center leading-none">
-          0
-        </span>
-      </button>
+      <Popover open={isPopupOpen(scope, 'orders')} onOpenChange={togglePopup(scope, 'orders')}>
+        <PopoverTrigger asChild>
+          <button
+            aria-label="Orders"
+            className={`relative flex items-center justify-center rounded-full transition-colors
+              ${mobile
+                ? 'w-14 h-14 bg-white/10 hover:bg-white/20 text-white'
+                : 'w-10 h-10 bg-white/15 hover:bg-white/25 text-white'}`}
+          >
+            <ClipboardList size={mobile ? 22 : 18} />
+            {/* Badge placeholder */}
+            <span className="absolute -top-0.5 -right-0.5 w-4 h-4 rounded-full bg-secondary text-[9px] font-bold text-secondary-foreground flex items-center justify-center leading-none">
+              0
+            </span>
+          </button>
+        </PopoverTrigger>
+        <PopoverContent align="center" sideOffset={14} className={bubbleContentClass}>
+          <OrdersBubble />
+        </PopoverContent>
+      </Popover>
 
       {/* Pre-order */}
-      <button
-        aria-label="Pre-order"
-        className={`flex items-center justify-center rounded-full transition-colors
-          ${mobile
-            ? 'w-14 h-14 bg-white/10 hover:bg-white/20 text-white'
-            : 'w-10 h-10 bg-white/15 hover:bg-white/25 text-white'}`}
-      >
-        <CalendarClock size={mobile ? 22 : 18} />
-      </button>
+      <Popover open={isPopupOpen(scope, 'preorder')} onOpenChange={togglePopup(scope, 'preorder')}>
+        <PopoverTrigger asChild>
+          <button
+            aria-label="Pre-order"
+            className={`flex items-center justify-center rounded-full transition-colors
+              ${mobile
+                ? 'w-14 h-14 bg-white/10 hover:bg-white/20 text-white'
+                : 'w-10 h-10 bg-white/15 hover:bg-white/25 text-white'}`}
+          >
+            <CalendarClock size={mobile ? 22 : 18} />
+          </button>
+        </PopoverTrigger>
+        <PopoverContent align="center" sideOffset={14} className={bubbleContentClass}>
+          <PreOrderBubble />
+        </PopoverContent>
+      </Popover>
 
       {/* Favorites */}
-      <button
-        aria-label="Favorites"
-        className={`flex items-center justify-center rounded-full transition-colors
-          ${mobile
-            ? 'w-14 h-14 bg-white/10 hover:bg-white/20 text-white'
-            : 'w-10 h-10 bg-white/15 hover:bg-white/25 text-white'}`}
-      >
-        <Heart size={mobile ? 22 : 18} />
-      </button>
+      <Popover open={isPopupOpen(scope, 'favorites')} onOpenChange={togglePopup(scope, 'favorites')}>
+        <PopoverTrigger asChild>
+          <button
+            aria-label="Favorites"
+            className={`flex items-center justify-center rounded-full transition-colors
+              ${mobile
+                ? 'w-14 h-14 bg-white/10 hover:bg-white/20 text-white'
+                : 'w-10 h-10 bg-white/15 hover:bg-white/25 text-white'}`}
+          >
+            <Heart size={mobile ? 22 : 18} />
+          </button>
+        </PopoverTrigger>
+        <PopoverContent align="center" sideOffset={14} className={bubbleContentClass}>
+          <FavoritesBubble />
+        </PopoverContent>
+      </Popover>
 
       {/* Profile picture / initials */}
       {user && !mobile && (
@@ -167,7 +295,8 @@ export default function Navbar() {
         </div>
       )}
     </div>
-  );
+    );
+  };
 
   return (
     <>
