@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronDown, ShoppingCart } from 'lucide-react';
+import { useAuth } from '@/context/AuthContext';
+import { useOrders } from '@/context/OrdersContext';
 // @ts-ignore
 import midnightBiteImg from '@assets/generated_images/midnight-bite.jpg';
 // @ts-ignore
@@ -93,6 +95,18 @@ const menuCategories = [
 
 export default function DiscoverMenus() {
   const [activeCategory, setActiveCategory] = useState('burger');
+  const { user } = useAuth();
+  const { addUnpaidOrder, setPendingBuy, openLoginModal } = useOrders();
+
+  const handleBuy = (item: { name: string; price: number }) => {
+    if (!user) {
+      // Save item so Navbar can add it after login
+      setPendingBuy(item);
+      openLoginModal();
+    } else {
+      addUnpaidOrder(item);
+    }
+  };
 
   return (
     <section id="menu" className="py-24 bg-background relative overflow-hidden">
@@ -166,6 +180,7 @@ export default function DiscoverMenus() {
                         <p className="text-sm text-foreground/70 pr-4">{item.desc}</p>
                       </div>
                       <button
+                        onClick={() => handleBuy(item)}
                         className="shrink-0 flex items-center gap-1.5 bg-secondary text-secondary-foreground px-4 py-2 rounded-full font-bold text-sm hover:scale-105 active:scale-95 transition-transform shadow-md"
                         data-testid={`button-buy-${activeCategory}-${i}`}
                       >

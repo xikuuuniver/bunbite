@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   ClipboardList,
@@ -26,6 +26,7 @@ import LoginModal from './LoginModal';
 import SignupModal from './SignupModal';
 import { useAuth } from '@/context/AuthContext';
 import type { AuthUser } from '@/context/AuthContext';
+import { useOrders } from '@/context/OrdersContext';
 // @ts-ignore
 import midnightBiteImg from '@assets/generated_images/midnight-bite.jpg';
 // @ts-ignore
@@ -40,11 +41,6 @@ const MOCK_ORDERS = [
   { id: '#BB-4821', items: '2x Cheesy Boom, 1x Fries', status: 'Processing', statusColor: 'bg-amber-100 text-amber-700', total: 32.5, time: '5 min ago' },
   { id: '#BB-4790', items: '1x Smoky Burst, 1x Coke', status: 'Delivered', statusColor: 'bg-blue-100 text-blue-700', total: 17.0, time: '38 min ago' },
   { id: '#BB-4712', items: '1x Midnight Bite', status: 'Completed', statusColor: 'bg-green-100 text-green-700', total: 12.0, time: 'Yesterday' },
-];
-
-const MOCK_UNPAID_ORDERS = [
-  { id: '#BB-4655', items: '1x Cheesy Boom, 1x Coke', total: 15.5, time: '2 hours ago' },
-  { id: '#BB-4600', items: '2x Smoky Burst', total: 26.0, time: 'Yesterday' },
 ];
 
 const MOCK_PREORDERS = [
@@ -62,7 +58,6 @@ const MOCK_FAVORITES = [
 function getInitials(user: AuthUser): string {
   if (user.firstName && user.lastName)
     return (user.firstName[0] + user.lastName[0]).toUpperCase();
-  // fallback: split username on . _ - and take first letters of first two parts
   const parts = user.username.split(/[._-]/);
   if (parts.length >= 2) return (parts[0][0] + parts[1][0]).toUpperCase();
   return user.username.slice(0, 2).toUpperCase();
@@ -70,17 +65,41 @@ function getInitials(user: AuthUser): string {
 
 export default function Navbar() {
   const { user, login, logout } = useAuth();
+  const {
+    unpaidOrders, removeUnpaidOrder,
+    pendingBuy, setPendingBuy, addUnpaidOrder,
+    badgePulse, registerLoginOpener,
+  } = useOrders();
 
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isLoginOpen,      setIsLoginOpen]      = useState(false);
   const [isSignupOpen,     setIsSignupOpen]      = useState(false);
   const [profileOpen,      setProfileOpen]       = useState(false);
 
+  /* Register our login opener so DiscoverMenus (and any other consumer) can call it */
+  useEffect(() => {
+    registerLoginOpener(() => setIsLoginOpen(true));
+  }, [registerLoginOpener]);
+
   const openSignup = () => { setIsLoginOpen(false); setIsSignupOpen(true); };
   const openLogin  = () => { setIsSignupOpen(false); setIsLoginOpen(true); };
 
-  const handleLogin = (u: AuthUser) => { login(u); setIsLoginOpen(false); };
+  const handleLogin = (u: AuthUser) => {
+    login(u);
+    setIsLoginOpen(false);
+    // pendingBuy flush is handled in the useEffect below, after auth state commits
+  };
+
+  /* Flush pendingBuy only after user auth state has committed to the tree */
+  useEffect(() => {
+    if (user && pendingBuy) {
+      addUnpaidOrder(pendingBuy);
+      setPendingBuy(null);
+    }
+  }, [user, pendingBuy]); // eslint-disable-line react-hooks/exhaustive-deps
   const handleSignupComplete = (u: AuthUser) => { login(u); setIsSignupOpen(false); };
+
+  const handlePayNow = (id: string) => removeUnpaidOrder(id);
 
   const scrollTo = (id: string) => {
     setIsMobileMenuOpen(false);
@@ -90,21 +109,13 @@ export default function Navbar() {
 
   /*
    * Only one action bubble (orders / pre-order / favorites) open at a time.
-   * Scoped by which AuthActions instance (desktop vs. mobile) triggered it —
-   * both instances can be mounted simultaneously (mobile menu open on a
-   * narrow viewport while the CSS-hidden desktop instance stays in the DOM),
-   * so a plain shared key would open duplicate, mis-anchored popovers.
+   * Scoped by which AuthActions instance (desktop vs. mobile) triggered it.
    */
   const [activePopup, setActivePopup] = useState<{ scope: 'desktop' | 'mobile'; key: PopupKey } | null>(null);
   const togglePopup = (scope: 'desktop' | 'mobile', key: PopupKey) => (open: boolean) =>
     setActivePopup(open ? { scope, key } : null);
   const isPopupOpen = (scope: 'desktop' | 'mobile', key: PopupKey) =>
     activePopup?.scope === scope && activePopup.key === key;
-
-  /* Unpaid orders are local mock state so "Pay Now" can visibly settle them */
-  const [unpaidOrders, setUnpaidOrders] = useState(MOCK_UNPAID_ORDERS);
-  const handlePayNow = (id: string) =>
-    setUnpaidOrders((prev) => prev.filter((order) => order.id !== id));
 
   /* ── Bubble pop-up content ── */
   const OrdersBubble = () => (
@@ -213,10 +224,16 @@ export default function Navbar() {
                 : 'w-10 h-10 bg-white/15 hover:bg-white/25 text-white'}`}
           >
             <ClipboardList size={mobile ? 22 : 18} />
-            {/* Badge placeholder */}
-            <span className="absolute -top-0.5 -right-0.5 w-4 h-4 rounded-full bg-secondary text-[9px] font-bold text-secondary-foreground flex items-center justify-center leading-none">
-              0
-            </span>
+            {/* Animated badge — re-mounts on each new order to play the spring pop */}
+            <motion.span
+              key={badgePulse}
+              initial={{ scale: badgePulse === 0 ? 1 : 1.9 }}
+              animate={{ scale: 1 }}
+              transition={{ type: 'spring', stiffness: 700, damping: 14 }}
+              className="absolute -top-0.5 -right-0.5 w-4 h-4 rounded-full bg-secondary text-[9px] font-bold text-secondary-foreground flex items-center justify-center leading-none"
+            >
+              {unpaidOrders.length}
+            </motion.span>
           </button>
         </PopoverTrigger>
         <PopoverContent align="center" sideOffset={14} className={bubbleContentClass}>
