@@ -12,10 +12,8 @@ import {
   CreditCard,
   Settings,
   HelpCircle,
-  Package,
-  Tag,
-  CheckCircle2,
   ShoppingBag,
+  CheckCircle2,
 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -30,6 +28,7 @@ import LoginModal from './LoginModal';
 import SignupModal from './SignupModal';
 import OrderHistoryModal from './OrderHistoryModal';
 import PaymentHistoryModal from './PaymentHistoryModal';
+import PaymentMethodsModal from './PaymentMethodsModal';
 import { useAuth } from '@/context/AuthContext';
 import type { AuthUser } from '@/context/AuthContext';
 import { useOrders } from '@/context/OrdersContext';
@@ -42,7 +41,7 @@ import smokyBurstImg from '@assets/generated_images/smoky-burst.jpg';
 
 type PopupKey = 'orders' | 'preorder' | 'favorites' | 'notifications';
 
-/* ── Mock data ── */
+/* ── Static mock data for non-reactive popups ── */
 const MOCK_ORDERS = [
   { id: '#BB-4821', items: '2x Cheesy Boom, 1x Fries',  status: 'Processing', statusColor: 'bg-amber-100 text-amber-700', total: 32.5, time: '5 min ago'  },
   { id: '#BB-4790', items: '1x Smoky Burst, 1x Coke',   status: 'Delivered',  statusColor: 'bg-blue-100 text-blue-700',   total: 17.0, time: '38 min ago' },
@@ -55,18 +54,9 @@ const MOCK_PREORDERS = [
 ];
 
 const MOCK_FAVORITES = [
-  { name: 'Cheesy Boom',  price: 14.0, image: cheesyBoomImg  },
-  { name: 'Smoky Burst',  price: 13.0, image: smokyBurstImg  },
-  { name: 'Midnight Bite',price: 12.0, image: midnightBiteImg },
-];
-
-const MOCK_NOTIFICATIONS = [
-  { id: 1, Icon: ShoppingBag,   iconClass: 'text-blue-500 bg-blue-50',   title: 'Order #BB-4821 is being processed', desc: 'Your order is on its way to the kitchen.',        time: '2 min ago',  unread: true  },
-  { id: 2, Icon: CheckCircle2,  iconClass: 'text-green-500 bg-green-50', title: 'Payment of $32.50 confirmed',       desc: 'Credit card payment received successfully.',      time: '5 min ago',  unread: true  },
-  { id: 3, Icon: Package,       iconClass: 'text-blue-500 bg-blue-50',   title: 'Order #BB-4790 delivered',          desc: 'Your order has been delivered. Enjoy!',           time: '38 min ago', unread: false },
-  { id: 4, Icon: Tag,           iconClass: 'text-orange-500 bg-orange-50',title: '20% off this weekend!',            desc: 'Use code BUNBITE20 at checkout.',                 time: '1 hour ago', unread: false },
-  { id: 5, Icon: UserCircle,    iconClass: 'text-gray-500 bg-gray-100',  title: 'Email verified successfully',       desc: 'Your account email has been confirmed.',          time: 'Yesterday',  unread: false },
-  { id: 6, Icon: ShoppingBag,   iconClass: 'text-blue-500 bg-blue-50',   title: 'Order #BB-4655 placed',             desc: '1x Cheesy Boom, 1x Coke — awaiting payment.',    time: '2 hours ago',unread: false },
+  { name: 'Cheesy Boom',   price: 14.0, image: cheesyBoomImg   },
+  { name: 'Smoky Burst',   price: 13.0, image: smokyBurstImg   },
+  { name: 'Midnight Bite', price: 12.0, image: midnightBiteImg },
 ];
 
 /* Derive initials from a user object */
@@ -82,16 +72,18 @@ export default function Navbar() {
   const { user, login, logout } = useAuth();
   const {
     unpaidOrders, removeUnpaidOrder,
-    pendingBuy, setPendingBuy, addUnpaidOrder,
+    pendingBuy, setPendingBuy, buyItem,
     badgePulse, registerLoginOpener,
+    notifications, addNotification, unreadCount,
   } = useOrders();
 
-  const [isMobileMenuOpen,    setIsMobileMenuOpen]    = useState(false);
-  const [isLoginOpen,         setIsLoginOpen]         = useState(false);
-  const [isSignupOpen,        setIsSignupOpen]        = useState(false);
-  const [profileOpen,         setProfileOpen]         = useState(false);
-  const [isOrderHistoryOpen,  setIsOrderHistoryOpen]  = useState(false);
-  const [isPaymentHistoryOpen,setIsPaymentHistoryOpen]= useState(false);
+  const [isMobileMenuOpen,      setIsMobileMenuOpen]      = useState(false);
+  const [isLoginOpen,           setIsLoginOpen]           = useState(false);
+  const [isSignupOpen,          setIsSignupOpen]          = useState(false);
+  const [profileOpen,           setProfileOpen]           = useState(false);
+  const [isOrderHistoryOpen,    setIsOrderHistoryOpen]    = useState(false);
+  const [isPaymentHistoryOpen,  setIsPaymentHistoryOpen]  = useState(false);
+  const [isPaymentMethodsOpen,  setIsPaymentMethodsOpen]  = useState(false);
 
   /* Register our login opener so any component can call openLoginModal() */
   useEffect(() => {
@@ -107,16 +99,31 @@ export default function Navbar() {
     // pendingBuy flush runs in the effect below, after auth state commits
   };
 
-  /* Flush pendingBuy only after user auth state has committed */
+  /* Flush pendingBuy after auth state commits — buyItem handles order + notification atomically */
   useEffect(() => {
     if (user && pendingBuy) {
-      addUnpaidOrder(pendingBuy);
+      buyItem(pendingBuy, user.firstName || user.username);
       setPendingBuy(null);
     }
   }, [user, pendingBuy]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleSignupComplete = (u: AuthUser) => { login(u); setIsSignupOpen(false); };
-  const handlePayNow = (id: string) => removeUnpaidOrder(id);
+
+  const handlePayNow = (id: string) => {
+    const order = unpaidOrders.find((o) => o.id === id);
+    removeUnpaidOrder(id);
+    if (order && user) {
+      const display = user.firstName || user.username;
+      addNotification({
+        Icon:      CheckCircle2,
+        iconClass: 'text-green-500 bg-green-50',
+        title:     `Univer confirmed ${display}'s order.`,
+        desc:      `Order ${order.id} — ${order.items} has been paid and is now being processed.`,
+        time:      'Just now',
+        unread:    true,
+      });
+    }
+  };
 
   const scrollTo = (id: string) => {
     setIsMobileMenuOpen(false);
@@ -217,8 +224,6 @@ export default function Navbar() {
     </div>
   );
 
-  const unreadCount = MOCK_NOTIFICATIONS.filter((n) => n.unread).length;
-
   const NotificationsBubble = () => (
     <div className="w-80 max-w-[85vw]">
       <div className="flex items-center justify-between px-4 pt-4 pb-2">
@@ -230,7 +235,7 @@ export default function Navbar() {
         )}
       </div>
       <div className="max-h-[360px] overflow-y-auto divide-y divide-gray-100">
-        {MOCK_NOTIFICATIONS.map(({ id, Icon, iconClass, title, desc, time, unread }) => (
+        {notifications.map(({ id, Icon, iconClass, title, desc, time, unread }) => (
           <div
             key={id}
             className={`px-4 py-3 flex items-start gap-3 ${unread ? 'bg-primary/[0.03]' : ''}`}
@@ -250,6 +255,9 @@ export default function Navbar() {
             )}
           </div>
         ))}
+        {notifications.length === 0 && (
+          <p className="px-4 py-6 text-xs text-center text-gray-400">No notifications yet.</p>
+        )}
       </div>
       <div className="pb-1" />
     </div>
@@ -259,12 +267,12 @@ export default function Navbar() {
 
   /* Dropdown menu items — each can have an onClick or an href */
   const profileMenuItems = [
-    { label: 'My Profile',      icon: UserCircle, onClick: () => window.open('https://account.univer.uk',   '_blank') },
+    { label: 'My Profile',      icon: UserCircle, onClick: () => window.open('https://account.univer.uk', '_blank') },
     { label: 'Order History',   icon: History,    onClick: () => { setProfileOpen(false); setIsOrderHistoryOpen(true);   } },
     { label: 'Payment History', icon: Receipt,    onClick: () => { setProfileOpen(false); setIsPaymentHistoryOpen(true); } },
-    { label: 'Payment Methods', icon: CreditCard, onClick: undefined },
-    { label: 'Settings',        icon: Settings,   onClick: () => window.open('https://account.univer.us',   '_blank') },
-    { label: 'Help & Support',  icon: HelpCircle, onClick: () => window.open('https://support.univer.uk',   '_blank') },
+    { label: 'Payment Methods', icon: CreditCard, onClick: () => { setProfileOpen(false); setIsPaymentMethodsOpen(true); } },
+    { label: 'Settings',        icon: Settings,   onClick: () => window.open('https://account.univer.us', '_blank') },
+    { label: 'Help & Support',  icon: HelpCircle, onClick: () => window.open('https://support.univer.uk', '_blank') },
   ];
 
   /* ── Authenticated action icons ── */
@@ -344,9 +352,15 @@ export default function Navbar() {
             >
               <Bell size={mobile ? 22 : 18} />
               {unreadCount > 0 && (
-                <span className="absolute -top-0.5 -right-0.5 w-4 h-4 rounded-full bg-red-500 text-[9px] font-bold text-white flex items-center justify-center leading-none">
+                <motion.span
+                  key={unreadCount}
+                  initial={{ scale: 1.6 }}
+                  animate={{ scale: 1 }}
+                  transition={{ type: 'spring', stiffness: 700, damping: 14 }}
+                  className="absolute -top-0.5 -right-0.5 w-4 h-4 rounded-full bg-red-500 text-[9px] font-bold text-white flex items-center justify-center leading-none"
+                >
                   {unreadCount}
-                </span>
+                </motion.span>
               )}
             </button>
           </PopoverTrigger>
@@ -548,6 +562,10 @@ export default function Navbar() {
       <PaymentHistoryModal
         isOpen={isPaymentHistoryOpen}
         onClose={() => setIsPaymentHistoryOpen(false)}
+      />
+      <PaymentMethodsModal
+        isOpen={isPaymentMethodsOpen}
+        onClose={() => setIsPaymentMethodsOpen(false)}
       />
     </>
   );

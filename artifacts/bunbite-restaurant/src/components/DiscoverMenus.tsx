@@ -96,7 +96,7 @@ const menuCategories = [
 export default function DiscoverMenus() {
   const [activeCategory, setActiveCategory] = useState('burger');
   const { user } = useAuth();
-  const { addUnpaidOrder, setPendingBuy, openLoginModal } = useOrders();
+  const { buyItem, setPendingBuy, openLoginModal } = useOrders();
 
   const handleBuy = (item: { name: string; price: number }) => {
     if (!user) {
@@ -104,7 +104,7 @@ export default function DiscoverMenus() {
       setPendingBuy(item);
       openLoginModal();
     } else {
-      addUnpaidOrder(item);
+      buyItem(item, user.firstName || user.username);
     }
   };
 

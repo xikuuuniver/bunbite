@@ -38,14 +38,14 @@ const products = [
 
 export default function BestSellers() {
   const { user } = useAuth();
-  const { addUnpaidOrder, setPendingBuy, openLoginModal } = useOrders();
+  const { buyItem, setPendingBuy, openLoginModal } = useOrders();
 
   const handleBuy = (item: { name: string; price: number }) => {
     if (!user) {
       setPendingBuy(item);
       openLoginModal();
     } else {
-      addUnpaidOrder(item);
+      buyItem(item, user.firstName || user.username);
     }
   };
 
