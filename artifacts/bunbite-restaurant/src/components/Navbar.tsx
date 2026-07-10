@@ -4,14 +4,18 @@ import {
   ClipboardList,
   CalendarClock,
   Heart,
+  Bell,
   LogOut,
   UserCircle,
   History,
   Receipt,
   CreditCard,
-  Bell,
   Settings,
   HelpCircle,
+  Package,
+  Tag,
+  CheckCircle2,
+  ShoppingBag,
 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -24,6 +28,8 @@ import {
 import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover';
 import LoginModal from './LoginModal';
 import SignupModal from './SignupModal';
+import OrderHistoryModal from './OrderHistoryModal';
+import PaymentHistoryModal from './PaymentHistoryModal';
 import { useAuth } from '@/context/AuthContext';
 import type { AuthUser } from '@/context/AuthContext';
 import { useOrders } from '@/context/OrdersContext';
@@ -34,24 +40,33 @@ import cheesyBoomImg from '@assets/generated_images/cheesy-boom.jpg';
 // @ts-ignore
 import smokyBurstImg from '@assets/generated_images/smoky-burst.jpg';
 
-type PopupKey = 'orders' | 'preorder' | 'favorites';
+type PopupKey = 'orders' | 'preorder' | 'favorites' | 'notifications';
 
-/* Mock data (no backend yet) */
+/* ── Mock data ── */
 const MOCK_ORDERS = [
-  { id: '#BB-4821', items: '2x Cheesy Boom, 1x Fries', status: 'Processing', statusColor: 'bg-amber-100 text-amber-700', total: 32.5, time: '5 min ago' },
-  { id: '#BB-4790', items: '1x Smoky Burst, 1x Coke', status: 'Delivered', statusColor: 'bg-blue-100 text-blue-700', total: 17.0, time: '38 min ago' },
-  { id: '#BB-4712', items: '1x Midnight Bite', status: 'Completed', statusColor: 'bg-green-100 text-green-700', total: 12.0, time: 'Yesterday' },
+  { id: '#BB-4821', items: '2x Cheesy Boom, 1x Fries',  status: 'Processing', statusColor: 'bg-amber-100 text-amber-700', total: 32.5, time: '5 min ago'  },
+  { id: '#BB-4790', items: '1x Smoky Burst, 1x Coke',   status: 'Delivered',  statusColor: 'bg-blue-100 text-blue-700',   total: 17.0, time: '38 min ago' },
+  { id: '#BB-4712', items: '1x Midnight Bite',           status: 'Completed',  statusColor: 'bg-green-100 text-green-700', total: 12.0, time: 'Yesterday'  },
 ];
 
 const MOCK_PREORDERS = [
-  { id: '#PO-1042', items: '3x Cheesy Boom', when: 'Tomorrow, 12:30 PM', status: 'Confirmed', statusColor: 'bg-green-100 text-green-700' },
-  { id: '#PO-1039', items: '1x Smoky Burst, 2x Fries', when: 'Fri, Jul 10 · 7:00 PM', status: 'Pending', statusColor: 'bg-amber-100 text-amber-700' },
+  { id: '#PO-1042', items: '3x Cheesy Boom',             when: 'Tomorrow, 12:30 PM',      status: 'Confirmed', statusColor: 'bg-green-100 text-green-700' },
+  { id: '#PO-1039', items: '1x Smoky Burst, 2x Fries',   when: 'Fri, Jul 10 · 7:00 PM',  status: 'Pending',   statusColor: 'bg-amber-100 text-amber-700' },
 ];
 
 const MOCK_FAVORITES = [
-  { name: 'Cheesy Boom', price: 14.0, image: cheesyBoomImg },
-  { name: 'Smoky Burst', price: 13.0, image: smokyBurstImg },
-  { name: 'Midnight Bite', price: 12.0, image: midnightBiteImg },
+  { name: 'Cheesy Boom',  price: 14.0, image: cheesyBoomImg  },
+  { name: 'Smoky Burst',  price: 13.0, image: smokyBurstImg  },
+  { name: 'Midnight Bite',price: 12.0, image: midnightBiteImg },
+];
+
+const MOCK_NOTIFICATIONS = [
+  { id: 1, Icon: ShoppingBag,   iconClass: 'text-blue-500 bg-blue-50',   title: 'Order #BB-4821 is being processed', desc: 'Your order is on its way to the kitchen.',        time: '2 min ago',  unread: true  },
+  { id: 2, Icon: CheckCircle2,  iconClass: 'text-green-500 bg-green-50', title: 'Payment of $32.50 confirmed',       desc: 'Credit card payment received successfully.',      time: '5 min ago',  unread: true  },
+  { id: 3, Icon: Package,       iconClass: 'text-blue-500 bg-blue-50',   title: 'Order #BB-4790 delivered',          desc: 'Your order has been delivered. Enjoy!',           time: '38 min ago', unread: false },
+  { id: 4, Icon: Tag,           iconClass: 'text-orange-500 bg-orange-50',title: '20% off this weekend!',            desc: 'Use code BUNBITE20 at checkout.',                 time: '1 hour ago', unread: false },
+  { id: 5, Icon: UserCircle,    iconClass: 'text-gray-500 bg-gray-100',  title: 'Email verified successfully',       desc: 'Your account email has been confirmed.',          time: 'Yesterday',  unread: false },
+  { id: 6, Icon: ShoppingBag,   iconClass: 'text-blue-500 bg-blue-50',   title: 'Order #BB-4655 placed',             desc: '1x Cheesy Boom, 1x Coke — awaiting payment.',    time: '2 hours ago',unread: false },
 ];
 
 /* Derive initials from a user object */
@@ -71,12 +86,14 @@ export default function Navbar() {
     badgePulse, registerLoginOpener,
   } = useOrders();
 
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [isLoginOpen,      setIsLoginOpen]      = useState(false);
-  const [isSignupOpen,     setIsSignupOpen]      = useState(false);
-  const [profileOpen,      setProfileOpen]       = useState(false);
+  const [isMobileMenuOpen,    setIsMobileMenuOpen]    = useState(false);
+  const [isLoginOpen,         setIsLoginOpen]         = useState(false);
+  const [isSignupOpen,        setIsSignupOpen]        = useState(false);
+  const [profileOpen,         setProfileOpen]         = useState(false);
+  const [isOrderHistoryOpen,  setIsOrderHistoryOpen]  = useState(false);
+  const [isPaymentHistoryOpen,setIsPaymentHistoryOpen]= useState(false);
 
-  /* Register our login opener so DiscoverMenus (and any other consumer) can call it */
+  /* Register our login opener so any component can call openLoginModal() */
   useEffect(() => {
     registerLoginOpener(() => setIsLoginOpen(true));
   }, [registerLoginOpener]);
@@ -87,18 +104,18 @@ export default function Navbar() {
   const handleLogin = (u: AuthUser) => {
     login(u);
     setIsLoginOpen(false);
-    // pendingBuy flush is handled in the useEffect below, after auth state commits
+    // pendingBuy flush runs in the effect below, after auth state commits
   };
 
-  /* Flush pendingBuy only after user auth state has committed to the tree */
+  /* Flush pendingBuy only after user auth state has committed */
   useEffect(() => {
     if (user && pendingBuy) {
       addUnpaidOrder(pendingBuy);
       setPendingBuy(null);
     }
   }, [user, pendingBuy]); // eslint-disable-line react-hooks/exhaustive-deps
-  const handleSignupComplete = (u: AuthUser) => { login(u); setIsSignupOpen(false); };
 
+  const handleSignupComplete = (u: AuthUser) => { login(u); setIsSignupOpen(false); };
   const handlePayNow = (id: string) => removeUnpaidOrder(id);
 
   const scrollTo = (id: string) => {
@@ -107,20 +124,16 @@ export default function Navbar() {
     if (element) element.scrollIntoView({ behavior: 'smooth' });
   };
 
-  /*
-   * Only one action bubble (orders / pre-order / favorites) open at a time.
-   * Scoped by which AuthActions instance (desktop vs. mobile) triggered it.
-   */
+  /* Popup state — scoped to desktop/mobile instance */
   const [activePopup, setActivePopup] = useState<{ scope: 'desktop' | 'mobile'; key: PopupKey } | null>(null);
   const togglePopup = (scope: 'desktop' | 'mobile', key: PopupKey) => (open: boolean) =>
     setActivePopup(open ? { scope, key } : null);
   const isPopupOpen = (scope: 'desktop' | 'mobile', key: PopupKey) =>
     activePopup?.scope === scope && activePopup.key === key;
 
-  /* ── Bubble pop-up content ── */
+  /* ── Bubble content components ── */
   const OrdersBubble = () => (
     <div className="w-80 max-w-[85vw]">
-      {/* Orders */}
       <p className="px-4 pt-4 pb-2 text-sm font-bold text-gray-800">Orders</p>
       <div className="max-h-64 overflow-y-auto divide-y divide-gray-100">
         {MOCK_ORDERS.map((order) => (
@@ -140,7 +153,6 @@ export default function Navbar() {
         ))}
       </div>
 
-      {/* Unpaid Orders */}
       <p className="px-4 pt-3 pb-2 text-sm font-bold text-gray-800 border-t border-gray-100">Unpaid Orders</p>
       {unpaidOrders.length === 0 ? (
         <p className="px-4 pb-4 text-xs text-gray-400">No unpaid orders.</p>
@@ -205,149 +217,204 @@ export default function Navbar() {
     </div>
   );
 
-  const bubbleContentClass =
-    'p-0 w-auto rounded-3xl border border-gray-100 shadow-2xl overflow-hidden';
+  const unreadCount = MOCK_NOTIFICATIONS.filter((n) => n.unread).length;
+
+  const NotificationsBubble = () => (
+    <div className="w-80 max-w-[85vw]">
+      <div className="flex items-center justify-between px-4 pt-4 pb-2">
+        <p className="text-sm font-bold text-gray-800">Notifications</p>
+        {unreadCount > 0 && (
+          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-secondary/15 text-secondary">
+            {unreadCount} new
+          </span>
+        )}
+      </div>
+      <div className="max-h-[360px] overflow-y-auto divide-y divide-gray-100">
+        {MOCK_NOTIFICATIONS.map(({ id, Icon, iconClass, title, desc, time, unread }) => (
+          <div
+            key={id}
+            className={`px-4 py-3 flex items-start gap-3 ${unread ? 'bg-primary/[0.03]' : ''}`}
+          >
+            <div className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 ${iconClass}`}>
+              <Icon size={15} />
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className={`text-xs leading-snug ${unread ? 'font-semibold text-gray-900' : 'font-medium text-gray-700'}`}>
+                {title}
+              </p>
+              <p className="text-[11px] text-gray-400 mt-0.5 leading-snug">{desc}</p>
+              <p className="text-[11px] text-gray-400 mt-1">{time}</p>
+            </div>
+            {unread && (
+              <div className="w-2 h-2 rounded-full bg-secondary mt-1 shrink-0" />
+            )}
+          </div>
+        ))}
+      </div>
+      <div className="pb-1" />
+    </div>
+  );
+
+  const bubbleContentClass = 'p-0 w-auto rounded-3xl border border-gray-100 shadow-2xl overflow-hidden';
+
+  /* Dropdown menu items — each can have an onClick or an href */
+  const profileMenuItems = [
+    { label: 'My Profile',      icon: UserCircle, onClick: () => window.open('https://account.univer.uk',   '_blank') },
+    { label: 'Order History',   icon: History,    onClick: () => { setProfileOpen(false); setIsOrderHistoryOpen(true);   } },
+    { label: 'Payment History', icon: Receipt,    onClick: () => { setProfileOpen(false); setIsPaymentHistoryOpen(true); } },
+    { label: 'Payment Methods', icon: CreditCard, onClick: undefined },
+    { label: 'Settings',        icon: Settings,   onClick: () => window.open('https://account.univer.us',   '_blank') },
+    { label: 'Help & Support',  icon: HelpCircle, onClick: () => window.open('https://support.univer.uk',   '_blank') },
+  ];
 
   /* ── Authenticated action icons ── */
   const AuthActions = ({ mobile = false }: { mobile?: boolean }) => {
     const scope = mobile ? 'mobile' : 'desktop';
     return (
-    <div className={`flex items-center ${mobile ? 'gap-6 justify-center' : 'gap-3'}`}>
-      {/* Orders */}
-      <Popover open={isPopupOpen(scope, 'orders')} onOpenChange={togglePopup(scope, 'orders')}>
-        <PopoverTrigger asChild>
-          <button
-            aria-label="Orders"
-            className={`relative flex items-center justify-center rounded-full transition-colors
-              ${mobile
-                ? 'w-14 h-14 bg-white/10 hover:bg-white/20 text-white'
-                : 'w-10 h-10 bg-white/15 hover:bg-white/25 text-white'}`}
-          >
-            <ClipboardList size={mobile ? 22 : 18} />
-            {/* Animated badge — re-mounts on each new order to play the spring pop */}
-            <motion.span
-              key={badgePulse}
-              initial={{ scale: badgePulse === 0 ? 1 : 1.9 }}
-              animate={{ scale: 1 }}
-              transition={{ type: 'spring', stiffness: 700, damping: 14 }}
-              className="absolute -top-0.5 -right-0.5 w-4 h-4 rounded-full bg-secondary text-[9px] font-bold text-secondary-foreground flex items-center justify-center leading-none"
-            >
-              {unpaidOrders.length}
-            </motion.span>
-          </button>
-        </PopoverTrigger>
-        <PopoverContent align="center" sideOffset={14} className={bubbleContentClass}>
-          <OrdersBubble />
-        </PopoverContent>
-      </Popover>
+      <div className={`flex items-center ${mobile ? 'gap-6 justify-center' : 'gap-3'}`}>
 
-      {/* Pre-order */}
-      <Popover open={isPopupOpen(scope, 'preorder')} onOpenChange={togglePopup(scope, 'preorder')}>
-        <PopoverTrigger asChild>
-          <button
-            aria-label="Pre-order"
-            className={`flex items-center justify-center rounded-full transition-colors
-              ${mobile
-                ? 'w-14 h-14 bg-white/10 hover:bg-white/20 text-white'
-                : 'w-10 h-10 bg-white/15 hover:bg-white/25 text-white'}`}
-          >
-            <CalendarClock size={mobile ? 22 : 18} />
-          </button>
-        </PopoverTrigger>
-        <PopoverContent align="center" sideOffset={14} className={bubbleContentClass}>
-          <PreOrderBubble />
-        </PopoverContent>
-      </Popover>
-
-      {/* Favorites */}
-      <Popover open={isPopupOpen(scope, 'favorites')} onOpenChange={togglePopup(scope, 'favorites')}>
-        <PopoverTrigger asChild>
-          <button
-            aria-label="Favorites"
-            className={`flex items-center justify-center rounded-full transition-colors
-              ${mobile
-                ? 'w-14 h-14 bg-white/10 hover:bg-white/20 text-white'
-                : 'w-10 h-10 bg-white/15 hover:bg-white/25 text-white'}`}
-          >
-            <Heart size={mobile ? 22 : 18} />
-          </button>
-        </PopoverTrigger>
-        <PopoverContent align="center" sideOffset={14} className={bubbleContentClass}>
-          <FavoritesBubble />
-        </PopoverContent>
-      </Popover>
-
-      {/* Profile picture / initials */}
-      {user && !mobile && (
-        <DropdownMenu open={profileOpen} onOpenChange={setProfileOpen}>
-          <DropdownMenuTrigger asChild>
+        {/* Orders */}
+        <Popover open={isPopupOpen(scope, 'orders')} onOpenChange={togglePopup(scope, 'orders')}>
+          <PopoverTrigger asChild>
             <button
-              aria-label="Profile menu"
-              className="flex items-center justify-center rounded-full overflow-hidden font-bold tracking-wide transition-all ring-2 ring-secondary/60 hover:ring-secondary w-10 h-10 text-xs"
-              style={{ background: user.avatar ? undefined : 'linear-gradient(135deg,#FB923C,#F97316)' }}
+              aria-label="Orders"
+              className={`relative flex items-center justify-center rounded-full transition-colors
+                ${mobile ? 'w-14 h-14 bg-white/10 hover:bg-white/20 text-white'
+                         : 'w-10 h-10 bg-white/15 hover:bg-white/25 text-white'}`}
             >
-              {user.avatar
-                ? <img src={user.avatar} alt="Profile" className="w-full h-full object-cover" />
-                : <span className="text-white select-none">{getInitials(user)}</span>}
-            </button>
-          </DropdownMenuTrigger>
-
-          <DropdownMenuContent align="end" sideOffset={12} className="w-56 rounded-2xl p-0 overflow-hidden">
-            {/* User info */}
-            <DropdownMenuLabel className="px-4 py-3 font-normal">
-              <p className="text-xs font-semibold text-gray-700 truncate">@{user.username}</p>
-              {user.firstName && (
-                <p className="text-xs text-gray-400 truncate font-normal">{user.firstName} {user.lastName}</p>
-              )}
-            </DropdownMenuLabel>
-            <DropdownMenuSeparator className="my-0" />
-
-            {/* Menu items */}
-            {[
-              { label: 'My Profile', icon: UserCircle },
-              { label: 'Order History', icon: History },
-              { label: 'Payment History', icon: Receipt },
-              { label: 'Payment Methods', icon: CreditCard },
-              { label: 'Notifications', icon: Bell },
-              { label: 'Settings', icon: Settings },
-              { label: 'Help & Support', icon: HelpCircle },
-            ].map(({ label, icon: Icon }) => (
-              <DropdownMenuItem
-                key={label}
-                className="px-4 py-2.5 rounded-none text-gray-600 focus:text-gray-900 cursor-pointer"
+              <ClipboardList size={mobile ? 22 : 18} />
+              <motion.span
+                key={badgePulse}
+                initial={{ scale: badgePulse === 0 ? 1 : 1.9 }}
+                animate={{ scale: 1 }}
+                transition={{ type: 'spring', stiffness: 700, damping: 14 }}
+                className="absolute -top-0.5 -right-0.5 w-4 h-4 rounded-full bg-secondary text-[9px] font-bold text-secondary-foreground flex items-center justify-center leading-none"
               >
-                <Icon size={15} />
-                {label}
-              </DropdownMenuItem>
-            ))}
+                {unpaidOrders.length}
+              </motion.span>
+            </button>
+          </PopoverTrigger>
+          <PopoverContent align="center" sideOffset={14} className={bubbleContentClass}>
+            <OrdersBubble />
+          </PopoverContent>
+        </Popover>
 
-            <DropdownMenuSeparator className="my-0" />
-
-            {/* Logout */}
-            <DropdownMenuItem
-              onClick={logout}
-              className="px-4 py-3 rounded-none text-red-500 focus:text-red-600 focus:bg-red-50 cursor-pointer"
+        {/* Pre-order */}
+        <Popover open={isPopupOpen(scope, 'preorder')} onOpenChange={togglePopup(scope, 'preorder')}>
+          <PopoverTrigger asChild>
+            <button
+              aria-label="Pre-order"
+              className={`flex items-center justify-center rounded-full transition-colors
+                ${mobile ? 'w-14 h-14 bg-white/10 hover:bg-white/20 text-white'
+                         : 'w-10 h-10 bg-white/15 hover:bg-white/25 text-white'}`}
             >
-              <LogOut size={15} />
-              Log out
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
-      )}
+              <CalendarClock size={mobile ? 22 : 18} />
+            </button>
+          </PopoverTrigger>
+          <PopoverContent align="center" sideOffset={14} className={bubbleContentClass}>
+            <PreOrderBubble />
+          </PopoverContent>
+        </Popover>
 
-      {/* Profile picture / initials — mobile (no dropdown; logout button shown separately) */}
-      {user && mobile && (
-        <div
-          aria-label="Profile"
-          className="flex items-center justify-center rounded-full overflow-hidden font-bold tracking-wide ring-2 ring-secondary/60 w-14 h-14 text-base"
-          style={{ background: user.avatar ? undefined : 'linear-gradient(135deg,#FB923C,#F97316)' }}
-        >
-          {user.avatar
-            ? <img src={user.avatar} alt="Profile" className="w-full h-full object-cover" />
-            : <span className="text-white select-none">{getInitials(user)}</span>}
-        </div>
-      )}
-    </div>
+        {/* Favorites */}
+        <Popover open={isPopupOpen(scope, 'favorites')} onOpenChange={togglePopup(scope, 'favorites')}>
+          <PopoverTrigger asChild>
+            <button
+              aria-label="Favorites"
+              className={`flex items-center justify-center rounded-full transition-colors
+                ${mobile ? 'w-14 h-14 bg-white/10 hover:bg-white/20 text-white'
+                         : 'w-10 h-10 bg-white/15 hover:bg-white/25 text-white'}`}
+            >
+              <Heart size={mobile ? 22 : 18} />
+            </button>
+          </PopoverTrigger>
+          <PopoverContent align="center" sideOffset={14} className={bubbleContentClass}>
+            <FavoritesBubble />
+          </PopoverContent>
+        </Popover>
+
+        {/* Notifications */}
+        <Popover open={isPopupOpen(scope, 'notifications')} onOpenChange={togglePopup(scope, 'notifications')}>
+          <PopoverTrigger asChild>
+            <button
+              aria-label="Notifications"
+              className={`relative flex items-center justify-center rounded-full transition-colors
+                ${mobile ? 'w-14 h-14 bg-white/10 hover:bg-white/20 text-white'
+                         : 'w-10 h-10 bg-white/15 hover:bg-white/25 text-white'}`}
+            >
+              <Bell size={mobile ? 22 : 18} />
+              {unreadCount > 0 && (
+                <span className="absolute -top-0.5 -right-0.5 w-4 h-4 rounded-full bg-red-500 text-[9px] font-bold text-white flex items-center justify-center leading-none">
+                  {unreadCount}
+                </span>
+              )}
+            </button>
+          </PopoverTrigger>
+          <PopoverContent align="center" sideOffset={14} className={bubbleContentClass}>
+            <NotificationsBubble />
+          </PopoverContent>
+        </Popover>
+
+        {/* Profile avatar — desktop only */}
+        {user && !mobile && (
+          <DropdownMenu open={profileOpen} onOpenChange={setProfileOpen}>
+            <DropdownMenuTrigger asChild>
+              <button
+                aria-label="Profile menu"
+                className="flex items-center justify-center rounded-full overflow-hidden font-bold tracking-wide transition-all ring-2 ring-secondary/60 hover:ring-secondary w-10 h-10 text-xs"
+                style={{ background: user.avatar ? undefined : 'linear-gradient(135deg,#FB923C,#F97316)' }}
+              >
+                {user.avatar
+                  ? <img src={user.avatar} alt="Profile" className="w-full h-full object-cover" />
+                  : <span className="text-white select-none">{getInitials(user)}</span>}
+              </button>
+            </DropdownMenuTrigger>
+
+            <DropdownMenuContent align="end" sideOffset={12} className="w-56 rounded-2xl p-0 overflow-hidden">
+              <DropdownMenuLabel className="px-4 py-3 font-normal">
+                <p className="text-xs font-semibold text-gray-700 truncate">@{user.username}</p>
+                {user.firstName && (
+                  <p className="text-xs text-gray-400 truncate font-normal">{user.firstName} {user.lastName}</p>
+                )}
+              </DropdownMenuLabel>
+              <DropdownMenuSeparator className="my-0" />
+
+              {profileMenuItems.map(({ label, icon: Icon, onClick }) => (
+                <DropdownMenuItem
+                  key={label}
+                  onClick={onClick}
+                  className="px-4 py-2.5 rounded-none text-gray-600 focus:text-gray-900 cursor-pointer"
+                >
+                  <Icon size={15} />
+                  {label}
+                </DropdownMenuItem>
+              ))}
+
+              <DropdownMenuSeparator className="my-0" />
+              <DropdownMenuItem
+                onClick={logout}
+                className="px-4 py-3 rounded-none text-red-500 focus:text-red-600 focus:bg-red-50 cursor-pointer"
+              >
+                <LogOut size={15} />
+                Log out
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        )}
+
+        {/* Profile avatar — mobile */}
+        {user && mobile && (
+          <div
+            aria-label="Profile"
+            className="flex items-center justify-center rounded-full overflow-hidden font-bold tracking-wide ring-2 ring-secondary/60 w-14 h-14 text-base"
+            style={{ background: user.avatar ? undefined : 'linear-gradient(135deg,#FB923C,#F97316)' }}
+          >
+            {user.avatar
+              ? <img src={user.avatar} alt="Profile" className="w-full h-full object-cover" />
+              : <span className="text-white select-none">{getInitials(user)}</span>}
+          </div>
+        )}
+      </div>
     );
   };
 
@@ -397,7 +464,7 @@ export default function Navbar() {
             )}
           </div>
 
-          {/* Hamburger — mobile */}
+          {/* Hamburger */}
           <button
             onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
             className="md:hidden text-white p-2"
@@ -459,7 +526,7 @@ export default function Navbar() {
         )}
       </AnimatePresence>
 
-      {/* Modals */}
+      {/* Auth modals */}
       <LoginModal
         isOpen={isLoginOpen}
         onClose={() => setIsLoginOpen(false)}
@@ -471,6 +538,16 @@ export default function Navbar() {
         onClose={() => setIsSignupOpen(false)}
         onLoginClick={openLogin}
         onLogin={handleSignupComplete}
+      />
+
+      {/* Account modals */}
+      <OrderHistoryModal
+        isOpen={isOrderHistoryOpen}
+        onClose={() => setIsOrderHistoryOpen(false)}
+      />
+      <PaymentHistoryModal
+        isOpen={isPaymentHistoryOpen}
+        onClose={() => setIsPaymentHistoryOpen(false)}
       />
     </>
   );
