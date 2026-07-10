@@ -1,5 +1,7 @@
 import { motion } from 'framer-motion';
-import { Star } from 'lucide-react';
+import { Star, ShoppingCart } from 'lucide-react';
+import { useAuth } from '@/context/AuthContext';
+import { useOrders } from '@/context/OrdersContext';
 // @ts-ignore
 import midnightBiteImg from '@assets/generated_images/midnight-bite.jpg';
 // @ts-ignore
@@ -35,6 +37,18 @@ const products = [
 ];
 
 export default function BestSellers() {
+  const { user } = useAuth();
+  const { addUnpaidOrder, setPendingBuy, openLoginModal } = useOrders();
+
+  const handleBuy = (item: { name: string; price: number }) => {
+    if (!user) {
+      setPendingBuy(item);
+      openLoginModal();
+    } else {
+      addUnpaidOrder(item);
+    }
+  };
+
   return (
     <section className="py-24 bg-white">
       <div className="container mx-auto px-4">
@@ -70,7 +84,7 @@ export default function BestSellers() {
               viewport={{ once: true }}
               transition={{ delay: i * 0.15 }}
               className={`bg-background rounded-3xl overflow-hidden flex flex-col ${
-                p.featured ? 'ring-4 ring-secondary transform md:-translate-y-4 shadow-xl' : 'shadow-md hover:shadow-xl hover:-translate-y-2'
+                p.featured ? 'ring-4 ring-secondary shadow-xl' : 'shadow-md hover:shadow-xl hover:-translate-y-2'
               } transition-all duration-300`}
             >
               <div className="relative h-64 overflow-hidden">
@@ -98,11 +112,13 @@ export default function BestSellers() {
                 
                 <div className="flex items-center justify-between mt-auto pt-4 border-t border-primary/10">
                   <span className="font-display text-2xl">${p.price.toFixed(2)}</span>
-                  <button 
-                    className={`${p.featured ? 'bg-secondary text-secondary-foreground' : 'bg-primary text-primary-foreground'} px-6 py-2.5 rounded-full font-bold transition-transform hover:scale-105 active:scale-95 shadow-sm`}
-                    data-testid={`button-add-cart-${p.id}`}
+                  <button
+                    onClick={() => handleBuy(p)}
+                    className={`flex items-center gap-2 ${p.featured ? 'bg-secondary text-secondary-foreground' : 'bg-primary text-primary-foreground'} px-6 py-2.5 rounded-full font-bold transition-transform hover:scale-105 active:scale-95 shadow-sm`}
+                    data-testid={`button-buy-${p.id}`}
                   >
-                    Add to Cart
+                    <ShoppingCart size={15} />
+                    Buy
                   </button>
                 </div>
               </div>
