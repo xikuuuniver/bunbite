@@ -101,6 +101,22 @@ export function OrdersProvider({ children }: { children: ReactNode }) {
   const removeUnpaidOrder = useCallback((id: string) =>
     setUnpaidOrders((prev) => prev.filter((o) => o.id !== id)), []);
 
+  /** Removes the given unpaid orders and fires one payment-confirmed notification per order. */
+  const confirmOrders = useCallback((orders: UnpaidOrder[], displayName: string) => {
+    const ids = new Set(orders.map((o) => o.id));
+    setUnpaidOrders((prev) => prev.filter((o) => !ids.has(o.id)));
+    orders.forEach((order) => {
+      addNotification({
+        Icon:      CheckCircle2,
+        iconClass: 'text-green-500 bg-green-50',
+        title:     `Univer confirmed ${displayName}'s order.`,
+        desc:      `Order ${order.id} — ${order.items} has been paid and is now being processed.`,
+        time:      'Just now',
+        unread:    true,
+      });
+    });
+  }, [addNotification]);
+
   const openLoginModal = useCallback(() => loginOpenerRef.current(), []);
 
   const registerLoginOpener = useCallback((fn: () => void) => {
@@ -111,7 +127,7 @@ export function OrdersProvider({ children }: { children: ReactNode }) {
 
   return (
     <OrdersContext.Provider value={{
-      unpaidOrders, addUnpaidOrder, removeUnpaidOrder, buyItem,
+      unpaidOrders, addUnpaidOrder, removeUnpaidOrder, buyItem, confirmOrders,
       pendingBuy, setPendingBuy,
       badgePulse, openLoginModal, registerLoginOpener,
       notifications, addNotification, unreadCount,

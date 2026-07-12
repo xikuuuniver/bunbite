@@ -12,8 +12,7 @@ import {
   CreditCard,
   Settings,
   HelpCircle,
-  ShoppingBag,
-  CheckCircle2,
+  Check,
 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -29,9 +28,13 @@ import SignupModal from './SignupModal';
 import OrderHistoryModal from './OrderHistoryModal';
 import PaymentHistoryModal from './PaymentHistoryModal';
 import PaymentMethodsModal from './PaymentMethodsModal';
+import PaymentMethodModal, { type PaymentSelection } from './PaymentMethodModal';
+import OrderConfirmationModal from './OrderConfirmationModal';
+import PaymentProcessingModal from './PaymentProcessingModal';
 import { useAuth } from '@/context/AuthContext';
 import type { AuthUser } from '@/context/AuthContext';
 import { useOrders } from '@/context/OrdersContext';
+import type { UnpaidOrder } from '@/context/OrdersContext';
 // @ts-ignore
 import midnightBiteImg from '@assets/generated_images/midnight-bite.jpg';
 // @ts-ignore
