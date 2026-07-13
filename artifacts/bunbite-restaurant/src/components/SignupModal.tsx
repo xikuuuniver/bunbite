@@ -309,7 +309,7 @@ export default function SignupModal({ isOpen, onClose, onLoginClick, onLogin }: 
     setIsLoading(true);
     timerRef.current = setTimeout(() => {
       setIsLoading(false);
-      onLogin({ username, firstName, lastName, avatar });
+      onLogin({ username, firstName, lastName, avatar, email, phone: `${phoneCode}${phoneNumber}` });
       handleClose();
     }, 1500);
   };

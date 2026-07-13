@@ -12,7 +12,6 @@ import {
   CreditCard,
   Settings,
   HelpCircle,
-  CheckCircle2,
 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -74,7 +73,7 @@ function getInitials(user: AuthUser): string {
 export default function Navbar() {
   const { user, login, logout } = useAuth();
   const {
-    unpaidOrders, removeUnpaidOrder,
+    unpaidOrders, removeUnpaidOrder, confirmOrders,
     pendingBuy, setPendingBuy, buyItem,
     badgePulse, registerLoginOpener,
     notifications, addNotification, unreadCount,
@@ -87,6 +86,12 @@ export default function Navbar() {
   const [isOrderHistoryOpen,    setIsOrderHistoryOpen]    = useState(false);
   const [isPaymentHistoryOpen,  setIsPaymentHistoryOpen]  = useState(false);
   const [isPaymentMethodsOpen,  setIsPaymentMethodsOpen]  = useState(false);
+
+  /* Unpaid order selection + checkout flow (method -> confirm -> processing) */
+  const [selectedOrderIds, setSelectedOrderIds] = useState<Set<string>>(new Set());
+  const [checkoutOrders,   setCheckoutOrders]   = useState<UnpaidOrder[] | null>(null);
+  const [checkoutStage,    setCheckoutStage]    = useState<'method' | 'confirm' | 'processing' | null>(null);
+  const [checkoutPayment,  setCheckoutPayment]  = useState<PaymentSelection | null>(null);
 
   /* Register our login opener so any component can call openLoginModal() */
   useEffect(() => {
@@ -112,20 +117,54 @@ export default function Navbar() {
 
   const handleSignupComplete = (u: AuthUser) => { login(u); setIsSignupOpen(false); };
 
-  const handlePayNow = (id: string) => {
-    const order = unpaidOrders.find((o) => o.id === id);
-    removeUnpaidOrder(id);
-    if (order && user) {
-      const display = user.firstName || user.username;
-      addNotification({
-        Icon:      CheckCircle2,
-        iconClass: 'text-green-500 bg-green-50',
-        title:     `Univer confirmed ${display}'s order.`,
-        desc:      `Order ${order.id} — ${order.items} has been paid and is now being processed.`,
-        time:      'Just now',
-        unread:    true,
+  /* ── Unpaid order selection ── */
+  const toggleOrderSelection = (id: string) => {
+    setSelectedOrderIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  };
+
+  /* ── Checkout flow: method -> confirm -> processing ── */
+  const startCheckout = (orders: UnpaidOrder[]) => {
+    if (orders.length === 0) return;
+    setActivePopup(null);
+    setCheckoutOrders(orders);
+    setCheckoutPayment(null);
+    setCheckoutStage('method');
+  };
+
+  const handleConfirmSelected = () =>
+    startCheckout(unpaidOrders.filter((o) => selectedOrderIds.has(o.id)));
+
+  const handleConfirmAllOrders = () => startCheckout(unpaidOrders);
+
+  const handlePaymentContinue = (selection: PaymentSelection) => {
+    setCheckoutPayment(selection);
+    setCheckoutStage('confirm');
+  };
+
+  const closeCheckout = () => {
+    setCheckoutStage(null);
+    setCheckoutOrders(null);
+    setCheckoutPayment(null);
+  };
+
+  const handleOrderConfirm = () => setCheckoutStage('processing');
+
+  const handleProcessingComplete = () => {
+    if (checkoutOrders && user) {
+      confirmOrders(checkoutOrders, user.firstName || user.username);
+      setSelectedOrderIds((prev) => {
+        const next = new Set(prev);
+        checkoutOrders.forEach((o) => next.delete(o.id));
+        return next;
       });
     }
+    setCheckoutOrders(null);
+    setCheckoutPayment(null);
+    setCheckoutStage(null);
   };
 
   const scrollTo = (id: string) => {
@@ -163,27 +202,65 @@ export default function Navbar() {
         ))}
       </div>
 
-      <p className="px-4 pt-3 pb-2 text-sm font-bold text-gray-800 border-t border-gray-100">Unpaid Orders</p>
+      <div className="px-4 pt-3 pb-2 flex items-center justify-between border-t border-gray-100">
+        <p className="text-sm font-bold text-gray-800">Unpaid Orders</p>
+        {unpaidOrders.length > 0 && (
+          <button
+            onClick={() =>
+              setSelectedOrderIds((prev) =>
+                prev.size === unpaidOrders.length ? new Set() : new Set(unpaidOrders.map((o) => o.id))
+              )
+            }
+            className="text-[11px] font-semibold text-secondary hover:underline"
+          >
+            {selectedOrderIds.size === unpaidOrders.length ? 'Deselect all' : 'Select all'}
+          </button>
+        )}
+      </div>
       {unpaidOrders.length === 0 ? (
         <p className="px-4 pb-4 text-xs text-gray-400">No unpaid orders.</p>
       ) : (
-        <div className="max-h-64 overflow-y-auto divide-y divide-gray-100">
-          {unpaidOrders.map((order) => (
-            <div key={order.id} className="px-4 py-3 flex items-center justify-between gap-3">
-              <div className="min-w-0">
-                <p className="text-sm font-semibold text-gray-800">{order.id}</p>
-                <p className="text-xs text-gray-500 truncate">{order.items}</p>
-                <p className="text-[11px] text-gray-400 mt-0.5">{order.time} · ${order.total.toFixed(2)}</p>
-              </div>
-              <button
-                onClick={() => handlePayNow(order.id)}
-                className="shrink-0 bg-secondary text-secondary-foreground text-xs font-bold px-3 py-1.5 rounded-full shadow-sm hover:brightness-105 active:scale-95 transition-transform"
-              >
-                Pay Now
-              </button>
-            </div>
-          ))}
-        </div>
+        <>
+          <div className="max-h-64 overflow-y-auto divide-y divide-gray-100">
+            {unpaidOrders.map((order) => {
+              const checked = selectedOrderIds.has(order.id);
+              return (
+                <label
+                  key={order.id}
+                  className="px-4 py-3 flex items-center gap-3 cursor-pointer hover:bg-gray-50/80"
+                >
+                  <input
+                    type="checkbox"
+                    checked={checked}
+                    onChange={() => toggleOrderSelection(order.id)}
+                    className="shrink-0 w-4 h-4 rounded accent-secondary cursor-pointer"
+                    aria-label={`Select order ${order.id}`}
+                  />
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-semibold text-gray-800">{order.id}</p>
+                    <p className="text-xs text-gray-500 truncate">{order.items}</p>
+                    <p className="text-[11px] text-gray-400 mt-0.5">{order.time} · ${order.total.toFixed(2)}</p>
+                  </div>
+                </label>
+              );
+            })}
+          </div>
+          <div className="px-4 py-3 border-t border-gray-100 flex items-center gap-2">
+            <button
+              onClick={handleConfirmSelected}
+              disabled={selectedOrderIds.size === 0}
+              className="flex-1 bg-white border border-secondary text-secondary text-xs font-bold px-3 py-2 rounded-full shadow-sm hover:bg-secondary/5 active:scale-95 transition-transform disabled:opacity-40 disabled:pointer-events-none"
+            >
+              Confirm{selectedOrderIds.size > 0 ? ` (${selectedOrderIds.size})` : ''}
+            </button>
+            <button
+              onClick={handleConfirmAllOrders}
+              className="flex-1 bg-secondary text-secondary-foreground text-xs font-bold px-3 py-2 rounded-full shadow-sm hover:brightness-105 active:scale-95 transition-transform"
+            >
+              Confirm All Orders
+            </button>
+          </div>
+        </>
       )}
       <div className="pb-1" />
     </div>
@@ -570,6 +647,34 @@ export default function Navbar() {
         isOpen={isPaymentMethodsOpen}
         onClose={() => setIsPaymentMethodsOpen(false)}
       />
+
+      {/* Order checkout flow: method -> confirm -> processing */}
+      {checkoutOrders && (
+        <>
+          <PaymentMethodModal
+            isOpen={checkoutStage === 'method'}
+            onClose={closeCheckout}
+            onContinue={handlePaymentContinue}
+            totalAmount={checkoutOrders.reduce((s, o) => s + o.total, 0)}
+            orderCount={checkoutOrders.length}
+          />
+          {user && (
+            <OrderConfirmationModal
+              isOpen={checkoutStage === 'confirm'}
+              onClose={closeCheckout}
+              onBack={() => setCheckoutStage('method')}
+              onConfirm={handleOrderConfirm}
+              user={user}
+              orders={checkoutOrders}
+              payment={checkoutPayment}
+            />
+          )}
+          <PaymentProcessingModal
+            isOpen={checkoutStage === 'processing'}
+            onComplete={handleProcessingComplete}
+          />
+        </>
+      )}
     </>
   );
 }

@@ -29,6 +29,8 @@ interface OrdersContextValue {
   removeUnpaidOrder: (id: string) => void;
   /** Adds order + fires buy notification atomically. Use for all buy paths. */
   buyItem: (item: BuyItem, displayName: string) => void;
+  /** Removes the given unpaid orders and fires one payment-confirmed notification per order. */
+  confirmOrders: (orders: UnpaidOrder[], displayName: string) => void;
   /** Item the user tried to buy before logging in; cleared after it's added. */
   pendingBuy: BuyItem | null;
   setPendingBuy: (item: BuyItem | null) => void;

@@ -4,6 +4,8 @@ export interface AuthUser {
   username: string;
   firstName?: string;
   lastName?: string;
+  email?: string;
+  phone?: string;
   avatar: string | null; // base64 data URL or null
 }
 

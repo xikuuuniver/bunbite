@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, type ReactNode } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, ArrowLeft, Wallet, Smartphone, ShoppingCart, MoreHorizontal, Lock } from 'lucide-react';
 
@@ -24,7 +24,7 @@ interface Props {
 
 type MethodId = 'visa' | 'mastercard' | 'univerpay' | 'googlepay' | 'applepay' | 'amazonpay' | 'other';
 
-const METHODS: { id: MethodId; label: string; badge: JSX.Element }[] = [
+const METHODS: { id: MethodId; label: string; badge: ReactNode }[] = [
   { id: 'visa',       label: 'Visa',        badge: <span className="text-white text-xs font-black italic tracking-wide">VISA</span> },
   { id: 'mastercard', label: 'Mastercard',  badge: (
       <span className="flex items-center">
