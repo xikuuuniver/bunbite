@@ -35,7 +35,7 @@ import CancelPreorderModal from './CancelPreorderModal';
 import { useAuth } from '@/context/AuthContext';
 import type { AuthUser } from '@/context/AuthContext';
 import { useOrders } from '@/context/OrdersContext';
-import type { UnpaidOrder, FavoriteItem } from '@/context/OrdersContext';
+import type { UnpaidOrder, FavoriteItem, PreOrder } from '@/context/OrdersContext';
 
 type PopupKey = 'orders' | 'preorder' | 'favorites' | 'notifications';
 
@@ -44,11 +44,6 @@ const MOCK_ORDERS = [
   { id: '#BB-4821', items: '2x Cheesy Boom, 1x Fries',  status: 'Processing', statusColor: 'bg-amber-100 text-amber-700', total: 32.5, time: '5 min ago'  },
   { id: '#BB-4790', items: '1x Smoky Burst, 1x Coke',   status: 'Delivered',  statusColor: 'bg-blue-100 text-blue-700',   total: 17.0, time: '38 min ago' },
   { id: '#BB-4712', items: '1x Midnight Bite',           status: 'Completed',  statusColor: 'bg-green-100 text-green-700', total: 12.0, time: 'Yesterday'  },
-];
-
-const MOCK_PREORDERS = [
-  { id: '#PO-1042', items: '3x Cheesy Boom',             when: 'Tomorrow, 12:30 PM',      status: 'Confirmed', statusColor: 'bg-green-100 text-green-700', fee: 5.0 },
-  { id: '#PO-1039', items: '1x Smoky Burst, 2x Fries',   when: 'Fri, Jul 10 · 7:00 PM',  status: 'Pending',   statusColor: 'bg-amber-100 text-amber-700', fee: 0   },
 ];
 
 /* Derive initials from a user object */
@@ -68,6 +63,7 @@ export default function Navbar() {
     badgePulse, registerLoginOpener,
     notifications, addNotification, unreadCount,
     favorites,
+    preOrders, removePreOrder,
   } = useOrders();
 
   const [isMobileMenuOpen,      setIsMobileMenuOpen]      = useState(false);
@@ -84,9 +80,8 @@ export default function Navbar() {
   const [checkoutStage,    setCheckoutStage]    = useState<'method' | 'confirm' | 'processing' | null>(null);
   const [checkoutPayment,  setCheckoutPayment]  = useState<PaymentSelection | null>(null);
 
-  /* Pre-orders + cancellation flow */
-  const [preOrders,    setPreOrders]    = useState(MOCK_PREORDERS);
-  const [cancelTarget, setCancelTarget] = useState<typeof MOCK_PREORDERS[number] | null>(null);
+  /* Pre-order cancellation flow */
+  const [cancelTarget, setCancelTarget] = useState<PreOrder | null>(null);
 
   /* Register our login opener so any component can call openLoginModal() */
   useEffect(() => {
@@ -176,14 +171,14 @@ export default function Navbar() {
   };
 
   /* ── Pre-order cancellation ── */
-  const handleCancelRequest = (order: typeof MOCK_PREORDERS[number]) => {
+  const handleCancelRequest = (order: PreOrder) => {
     setActivePopup(null);
     setCancelTarget(order);
   };
 
   const handleCancelConfirm = () => {
     if (!cancelTarget) return;
-    setPreOrders((prev) => prev.filter((o) => o.id !== cancelTarget.id));
+    removePreOrder(cancelTarget.id);
     addNotification({
       Icon:      CheckCircle2,
       iconClass: cancelTarget.fee > 0 ? 'text-red-500 bg-red-50' : 'text-green-500 bg-green-50',

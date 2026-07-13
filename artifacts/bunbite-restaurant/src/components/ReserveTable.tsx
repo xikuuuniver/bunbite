@@ -1,10 +1,12 @@
 import { motion } from 'framer-motion';
+import { CalendarCheck } from 'lucide-react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 // @ts-ignore
 import peopleImg from '@assets/generated_images/reservation-people.jpg';
 import { useToast } from '@/hooks/use-toast';
+import { useOrders } from '@/context/OrdersContext';
 import {
   Form,
   FormControl,
@@ -13,6 +15,21 @@ import {
   FormLabel,
   FormMessage,
 } from '@/components/ui/form';
+
+const TIME_LABELS: Record<string, string> = {
+  '10:00': '10:00 AM',
+  '12:00': '12:00 PM',
+  '14:00': '2:00 PM',
+  '16:00': '4:00 PM',
+  '18:00': '6:00 PM',
+  '20:00': '8:00 PM',
+};
+
+function formatReservationDate(dateStr: string): string {
+  const parsed = new Date(`${dateStr}T00:00:00`);
+  if (Number.isNaN(parsed.getTime())) return dateStr;
+  return parsed.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+}
 
 const formSchema = z.object({
   fullName: z.string().min(2, 'Name is required'),
@@ -25,6 +42,7 @@ const formSchema = z.object({
 
 export default function ReserveTable() {
   const { toast } = useToast();
+  const { addPreOrder, addNotification } = useOrders();
   
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -39,10 +57,30 @@ export default function ReserveTable() {
   });
 
   function onSubmit(values: z.infer<typeof formSchema>) {
-    console.log(values);
+    const dateLabel = formatReservationDate(values.date);
+    const timeLabel = TIME_LABELS[values.time] ?? values.time;
+    const guestLabel = `${values.guests} ${values.guests === '1' ? 'Guest' : 'Guests'}`;
+
+    const preOrderId = addPreOrder({
+      items: `Table for ${guestLabel} — ${values.fullName}`,
+      when: `${dateLabel}, ${timeLabel}`,
+      status: 'Confirmed',
+      statusColor: 'bg-green-100 text-green-700',
+      fee: 0,
+    });
+
+    addNotification({
+      Icon: CalendarCheck,
+      iconClass: 'text-green-500 bg-green-50',
+      title: 'Table reservation confirmed',
+      desc: `${preOrderId} — Table for ${guestLabel} on ${dateLabel} at ${timeLabel}.`,
+      time: 'Just now',
+      unread: true,
+    });
+
     toast({
       title: "Reservation Confirmed!",
-      description: `We'll see you on ${values.date} at ${values.time} for ${values.guests} guests.`,
+      description: `We'll see you on ${dateLabel} at ${timeLabel} for ${values.guests} guests.`,
       variant: "default",
     });
     form.reset();

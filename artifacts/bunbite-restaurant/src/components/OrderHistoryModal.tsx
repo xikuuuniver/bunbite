@@ -1,23 +1,36 @@
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, ClipboardList } from 'lucide-react';
+import { useOrders } from '@/context/OrdersContext';
 
 interface Props {
   isOpen: boolean;
   onClose: () => void;
 }
 
-const ORDERS = [
+/** Orders that are already settled/in-flight — not affected by the live Unpaid Orders list. */
+const HISTORY_ORDERS = [
   { id: '#BB-4821', items: '2x Cheesy Boom, 1x Fries',      total: 32.50, status: 'Processing', statusColor: 'bg-amber-100 text-amber-700',  date: 'Jul 10, 2026' },
   { id: '#BB-4790', items: '1x Smoky Burst, 1x Coke',        total: 17.00, status: 'Delivered',  statusColor: 'bg-blue-100 text-blue-700',    date: 'Jul 10, 2026' },
   { id: '#BB-4712', items: '1x Midnight Bite',               total: 12.00, status: 'Completed',  statusColor: 'bg-green-100 text-green-700',  date: 'Jul 9, 2026'  },
-  { id: '#BB-4655', items: '1x Cheesy Boom, 1x Coke',        total: 15.50, status: 'Unpaid',     statusColor: 'bg-red-100 text-red-600',      date: 'Jul 9, 2026'  },
-  { id: '#BB-4600', items: '2x Smoky Burst',                 total: 26.00, status: 'Unpaid',     statusColor: 'bg-red-100 text-red-600',      date: 'Jul 8, 2026'  },
   { id: '#BB-4412', items: '1x Truffle Dream, 2x Classic Fries', total: 21.00, status: 'Completed', statusColor: 'bg-green-100 text-green-700', date: 'Jul 5, 2026' },
   { id: '#BB-4380', items: '3x Classic Fries',               total: 13.50, status: 'Completed',  statusColor: 'bg-green-100 text-green-700',  date: 'Jul 3, 2026'  },
   { id: '#BB-4210', items: '1x Spicy Bird, 1x Lemonade',     total: 17.50, status: 'Completed',  statusColor: 'bg-green-100 text-green-700',  date: 'Jun 28, 2026' },
 ];
 
 export default function OrderHistoryModal({ isOpen, onClose }: Props) {
+  const { unpaidOrders, removeUnpaidOrder } = useOrders();
+
+  /** Unpaid orders are sourced live from context so removing one here also updates the Unpaid Orders popup and its counters. */
+  const unpaidAsHistory = unpaidOrders.map((o) => ({
+    id: o.id,
+    items: o.items,
+    total: o.total,
+    status: 'Unpaid',
+    statusColor: 'bg-red-100 text-red-600',
+    date: o.time,
+  }));
+  const ORDERS = [...unpaidAsHistory, ...HISTORY_ORDERS];
+
   return (
     <AnimatePresence>
       {isOpen && (
@@ -78,8 +91,18 @@ export default function OrderHistoryModal({ isOpen, onClose }: Props) {
                       <p className="text-xs text-gray-500 truncate">{order.items}</p>
                       <p className="text-[11px] text-gray-400 mt-1">{order.date}</p>
                     </div>
-                    <div className="shrink-0 text-right">
+                    <div className="shrink-0 text-right flex flex-col items-end gap-1.5">
                       <p className="font-display text-lg text-primary">${order.total.toFixed(2)}</p>
+                      {order.status === 'Unpaid' && (
+                        <button
+                          onClick={() => removeUnpaidOrder(order.id)}
+                          className="text-[11px] font-semibold text-gray-400 hover:text-red-500 transition-colors"
+                          aria-label={`Remove order ${order.id}`}
+                          data-testid={`button-remove-history-${order.id}`}
+                        >
+                          Remove
+                        </button>
+                      )}
                     </div>
                   </div>
                 ))}
