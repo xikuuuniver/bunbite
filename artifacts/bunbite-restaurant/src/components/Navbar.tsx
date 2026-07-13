@@ -34,12 +34,6 @@ import { useAuth } from '@/context/AuthContext';
 import type { AuthUser } from '@/context/AuthContext';
 import { useOrders } from '@/context/OrdersContext';
 import type { UnpaidOrder } from '@/context/OrdersContext';
-// @ts-ignore
-import midnightBiteImg from '@assets/generated_images/midnight-bite.jpg';
-// @ts-ignore
-import cheesyBoomImg from '@assets/generated_images/cheesy-boom.jpg';
-// @ts-ignore
-import smokyBurstImg from '@assets/generated_images/smoky-burst.jpg';
 
 type PopupKey = 'orders' | 'preorder' | 'favorites' | 'notifications';
 
@@ -53,12 +47,6 @@ const MOCK_ORDERS = [
 const MOCK_PREORDERS = [
   { id: '#PO-1042', items: '3x Cheesy Boom',             when: 'Tomorrow, 12:30 PM',      status: 'Confirmed', statusColor: 'bg-green-100 text-green-700' },
   { id: '#PO-1039', items: '1x Smoky Burst, 2x Fries',   when: 'Fri, Jul 10 · 7:00 PM',  status: 'Pending',   statusColor: 'bg-amber-100 text-amber-700' },
-];
-
-const MOCK_FAVORITES = [
-  { name: 'Cheesy Boom',   price: 14.0, image: cheesyBoomImg   },
-  { name: 'Smoky Burst',   price: 13.0, image: smokyBurstImg   },
-  { name: 'Midnight Bite', price: 12.0, image: midnightBiteImg },
 ];
 
 /* Derive initials from a user object */
@@ -77,6 +65,7 @@ export default function Navbar() {
     pendingBuy, setPendingBuy, buyItem,
     badgePulse, registerLoginOpener,
     notifications, addNotification, unreadCount,
+    favorites,
   } = useOrders();
 
   const [isMobileMenuOpen,      setIsMobileMenuOpen]      = useState(false);
@@ -289,18 +278,23 @@ export default function Navbar() {
   const FavoritesBubble = () => (
     <div className="w-80 max-w-[85vw]">
       <p className="px-4 pt-4 pb-2 text-sm font-bold text-gray-800">Your Favorites</p>
-      <div className="max-h-80 overflow-y-auto divide-y divide-gray-100">
-        {MOCK_FAVORITES.map((item) => (
-          <div key={item.name} className="px-4 py-3 flex items-center gap-3">
-            <img src={item.image} alt={item.name} className="w-11 h-11 rounded-xl object-cover shrink-0" />
-            <div className="min-w-0 flex-1">
-              <p className="text-sm font-semibold text-gray-800 truncate">{item.name}</p>
-              <p className="text-xs text-gray-500">${item.price.toFixed(2)}</p>
+      {favorites.length === 0 ? (
+        <p className="px-4 pb-4 text-xs text-gray-400">No favorites yet. Tap the heart on any menu item to save it here.</p>
+      ) : (
+        <div className="max-h-80 overflow-y-auto divide-y divide-gray-100">
+          {favorites.map((item) => (
+            <div key={item.name} className="px-4 py-3 flex items-center gap-3">
+              <img src={item.image} alt={item.name} className="w-11 h-11 rounded-xl object-cover shrink-0" />
+              <div className="min-w-0 flex-1">
+                <p className="text-sm font-semibold text-gray-800 truncate">{item.name}</p>
+                {item.desc && <p className="text-xs text-gray-500 truncate">{item.desc}</p>}
+                <p className="text-xs font-bold text-gray-700 mt-0.5">${item.price.toFixed(2)}</p>
+              </div>
+              <Heart size={16} className="text-secondary fill-secondary shrink-0" />
             </div>
-            <Heart size={16} className="text-secondary fill-secondary shrink-0" />
-          </div>
-        ))}
-      </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 

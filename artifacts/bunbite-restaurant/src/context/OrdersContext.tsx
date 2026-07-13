@@ -1,9 +1,22 @@
 import { createContext, useContext, useState, useRef, useCallback, ReactNode } from 'react';
 import { ShoppingBag, CheckCircle2, type LucideIcon } from 'lucide-react';
+// @ts-ignore
+import midnightBiteImg from '@assets/generated_images/midnight-bite.jpg';
+// @ts-ignore
+import cheesyBoomImg from '@assets/generated_images/cheesy-boom.jpg';
+// @ts-ignore
+import smokyBurstImg from '@assets/generated_images/smoky-burst.jpg';
 
 export interface BuyItem {
   name: string;
   price: number;
+}
+
+export interface FavoriteItem {
+  name: string;
+  price: number;
+  image: string;
+  desc?: string;
 }
 
 export interface UnpaidOrder {
@@ -44,9 +57,20 @@ interface OrdersContextValue {
   notifications: AppNotification[];
   addNotification: (n: Omit<AppNotification, 'id'>) => void;
   unreadCount: number;
+  /** Liked/favorited products — shown in the Navbar Favorites popup. */
+  favorites: FavoriteItem[];
+  /** Adds or removes a product from favorites. Never fires a notification. */
+  toggleFavorite: (item: FavoriteItem) => void;
+  isFavorite: (name: string) => boolean;
 }
 
 const OrdersContext = createContext<OrdersContextValue | null>(null);
+
+const INITIAL_FAVORITES: FavoriteItem[] = [
+  { name: 'Cheesy Boom',   price: 14.0, image: cheesyBoomImg   },
+  { name: 'Smoky Burst',   price: 13.0, image: smokyBurstImg   },
+  { name: 'Midnight Bite', price: 12.0, image: midnightBiteImg },
+];
 
 const INITIAL_UNPAID: UnpaidOrder[] = [
   { id: '#BB-4655', items: '1x Cheesy Boom, 1x Coke',  total: 15.5, time: '2 hours ago' },
@@ -65,6 +89,7 @@ export function OrdersProvider({ children }: { children: ReactNode }) {
   const [pendingBuy,     setPendingBuy]     = useState<BuyItem | null>(null);
   const [badgePulse,     setBadgePulse]     = useState(0);
   const [notifications,  setNotifications]  = useState<AppNotification[]>(INITIAL_NOTIFICATIONS);
+  const [favorites,      setFavorites]      = useState<FavoriteItem[]>(INITIAL_FAVORITES);
   const loginOpenerRef = useRef<() => void>(() => {});
   /** Instance-scoped order ID counter — safe across remounts and HMR. */
   const counterRef     = useRef(5000);
@@ -119,6 +144,20 @@ export function OrdersProvider({ children }: { children: ReactNode }) {
     });
   }, [addNotification]);
 
+  const isFavorite = useCallback(
+    (name: string) => favorites.some((f) => f.name === name),
+    [favorites],
+  );
+
+  /** Adds or removes a product from favorites. Never fires a notification. */
+  const toggleFavorite = useCallback((item: FavoriteItem) => {
+    setFavorites((prev) =>
+      prev.some((f) => f.name === item.name)
+        ? prev.filter((f) => f.name !== item.name)
+        : [item, ...prev],
+    );
+  }, []);
+
   const openLoginModal = useCallback(() => loginOpenerRef.current(), []);
 
   const registerLoginOpener = useCallback((fn: () => void) => {
@@ -130,6 +169,7 @@ export function OrdersProvider({ children }: { children: ReactNode }) {
   return (
     <OrdersContext.Provider value={{
       unpaidOrders, addUnpaidOrder, removeUnpaidOrder, buyItem, confirmOrders,
+      favorites, toggleFavorite, isFavorite,
       pendingBuy, setPendingBuy,
       badgePulse, openLoginModal, registerLoginOpener,
       notifications, addNotification, unreadCount,

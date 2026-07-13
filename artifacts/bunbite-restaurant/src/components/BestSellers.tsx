@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion';
-import { Star, ShoppingCart } from 'lucide-react';
+import { Star, ShoppingCart, Heart } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { useOrders } from '@/context/OrdersContext';
 // @ts-ignore
@@ -38,7 +38,7 @@ const products = [
 
 export default function BestSellers() {
   const { user } = useAuth();
-  const { buyItem, setPendingBuy, openLoginModal } = useOrders();
+  const { buyItem, setPendingBuy, openLoginModal, toggleFavorite, isFavorite } = useOrders();
 
   const handleBuy = (item: { name: string; price: number }) => {
     if (!user) {
@@ -112,14 +112,29 @@ export default function BestSellers() {
                 
                 <div className="flex items-center justify-between mt-auto pt-4 border-t border-primary/10">
                   <span className="font-display text-2xl">${p.price.toFixed(2)}</span>
-                  <button
-                    onClick={() => handleBuy(p)}
-                    className={`flex items-center gap-2 ${p.featured ? 'bg-secondary text-secondary-foreground' : 'bg-primary text-primary-foreground'} px-6 py-2.5 rounded-full font-bold transition-transform hover:scale-105 active:scale-95 shadow-sm`}
-                    data-testid={`button-buy-${p.id}`}
-                  >
-                    <ShoppingCart size={15} />
-                    Buy
-                  </button>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => toggleFavorite({ name: p.name, price: p.price, image: p.image, desc: p.desc })}
+                      aria-label={isFavorite(p.name) ? `Remove ${p.name} from favorites` : `Add ${p.name} to favorites`}
+                      aria-pressed={isFavorite(p.name)}
+                      className={`w-10 h-10 flex items-center justify-center rounded-full border transition-all active:scale-90 ${
+                        isFavorite(p.name)
+                          ? 'bg-secondary/10 border-secondary text-secondary'
+                          : 'bg-white border-primary/10 text-primary/40 hover:text-secondary hover:border-secondary/40'
+                      }`}
+                      data-testid={`button-like-${p.id}`}
+                    >
+                      <Heart size={16} className={isFavorite(p.name) ? 'fill-secondary' : ''} />
+                    </button>
+                    <button
+                      onClick={() => handleBuy(p)}
+                      className={`flex items-center gap-2 ${p.featured ? 'bg-secondary text-secondary-foreground' : 'bg-primary text-primary-foreground'} px-6 py-2.5 rounded-full font-bold transition-transform hover:scale-105 active:scale-95 shadow-sm`}
+                      data-testid={`button-buy-${p.id}`}
+                    >
+                      <ShoppingCart size={15} />
+                      Buy
+                    </button>
+                  </div>
                 </div>
               </div>
             </motion.div>

@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ChevronDown, ShoppingCart } from 'lucide-react';
+import { ChevronDown, ShoppingCart, Heart } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { useOrders } from '@/context/OrdersContext';
 // @ts-ignore
@@ -96,7 +96,7 @@ const menuCategories = [
 export default function DiscoverMenus() {
   const [activeCategory, setActiveCategory] = useState('burger');
   const { user } = useAuth();
-  const { buyItem, setPendingBuy, openLoginModal } = useOrders();
+  const { buyItem, setPendingBuy, openLoginModal, toggleFavorite, isFavorite } = useOrders();
 
   const handleBuy = (item: { name: string; price: number }) => {
     if (!user) {
@@ -179,14 +179,29 @@ export default function DiscoverMenus() {
                         </div>
                         <p className="text-sm text-foreground/70 pr-4">{item.desc}</p>
                       </div>
-                      <button
-                        onClick={() => handleBuy(item)}
-                        className="shrink-0 flex items-center gap-1.5 bg-secondary text-secondary-foreground px-4 py-2 rounded-full font-bold text-sm hover:scale-105 active:scale-95 transition-transform shadow-md"
-                        data-testid={`button-buy-${activeCategory}-${i}`}
-                      >
-                        <ShoppingCart size={15} />
-                        Buy
-                      </button>
+                      <div className="shrink-0 flex items-center gap-2">
+                        <button
+                          onClick={() => toggleFavorite({ name: item.name, price: item.price, image: item.image, desc: item.desc })}
+                          aria-label={isFavorite(item.name) ? `Remove ${item.name} from favorites` : `Add ${item.name} to favorites`}
+                          aria-pressed={isFavorite(item.name)}
+                          className={`w-9 h-9 flex items-center justify-center rounded-full border transition-all active:scale-90 ${
+                            isFavorite(item.name)
+                              ? 'bg-secondary/10 border-secondary text-secondary'
+                              : 'bg-white border-primary/10 text-primary/40 hover:text-secondary hover:border-secondary/40'
+                          }`}
+                          data-testid={`button-like-${activeCategory}-${i}`}
+                        >
+                          <Heart size={15} className={isFavorite(item.name) ? 'fill-secondary' : ''} />
+                        </button>
+                        <button
+                          onClick={() => handleBuy(item)}
+                          className="flex items-center gap-1.5 bg-secondary text-secondary-foreground px-4 py-2 rounded-full font-bold text-sm hover:scale-105 active:scale-95 transition-transform shadow-md"
+                          data-testid={`button-buy-${activeCategory}-${i}`}
+                        >
+                          <ShoppingCart size={15} />
+                          Buy
+                        </button>
+                      </div>
                     </div>
                   ))}
                 </div>
