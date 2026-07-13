@@ -1,0 +1,1 @@
+- [Imported pnpm-workspace projects: artifacts not registered](imported-workspace-artifact-registration.md) — listArtifacts/listWorkflows empty despite artifact.toml files on disk; fix by running post-merge setup, not createArtifact.
