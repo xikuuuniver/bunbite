@@ -227,23 +227,43 @@ export default function Navbar() {
             {unpaidOrders.map((order) => {
               const checked = selectedOrderIds.has(order.id);
               return (
-                <label
+                <div
                   key={order.id}
-                  className="px-4 py-3 flex items-center gap-3 cursor-pointer hover:bg-gray-50/80"
+                  className="px-4 py-3 flex items-center gap-3 hover:bg-gray-50/80"
                 >
-                  <input
-                    type="checkbox"
-                    checked={checked}
-                    onChange={() => toggleOrderSelection(order.id)}
-                    className="shrink-0 w-4 h-4 rounded accent-secondary cursor-pointer"
-                    aria-label={`Select order ${order.id}`}
-                  />
-                  <div className="min-w-0 flex-1">
-                    <p className="text-sm font-semibold text-gray-800">{order.id}</p>
-                    <p className="text-xs text-gray-500 truncate">{order.items}</p>
-                    <p className="text-[11px] text-gray-400 mt-0.5">{order.time} · ${order.total.toFixed(2)}</p>
-                  </div>
-                </label>
+                  <label className="flex items-center gap-3 min-w-0 flex-1 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={checked}
+                      onChange={() => toggleOrderSelection(order.id)}
+                      className="shrink-0 w-4 h-4 rounded accent-secondary cursor-pointer"
+                      aria-label={`Select order ${order.id}`}
+                    />
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-semibold text-gray-800">
+                        {order.name}{order.qty > 1 ? ` ×${order.qty}` : ''}
+                      </p>
+                      <p className="text-xs text-gray-500 truncate">{order.id} · {order.items}</p>
+                      <p className="text-[11px] text-gray-400 mt-0.5">{order.time} · ${order.total.toFixed(2)}</p>
+                    </div>
+                  </label>
+                  <button
+                    onClick={() => {
+                      removeUnpaidOrder(order.id);
+                      setSelectedOrderIds((prev) => {
+                        if (!prev.has(order.id)) return prev;
+                        const next = new Set(prev);
+                        next.delete(order.id);
+                        return next;
+                      });
+                    }}
+                    className="shrink-0 text-[11px] font-semibold text-gray-400 hover:text-red-500 px-2 py-1 rounded-full transition-colors"
+                    aria-label={`Remove ${order.name} from unpaid orders`}
+                    data-testid={`button-remove-unpaid-${order.id}`}
+                  >
+                    Remove
+                  </button>
+                </div>
               );
             })}
           </div>

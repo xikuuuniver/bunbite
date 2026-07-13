@@ -21,6 +21,12 @@ export interface FavoriteItem {
 
 export interface UnpaidOrder {
   id: string;
+  /** Product name — used to group repeat orders of the same item. */
+  name: string;
+  /** Unit price of a single item. */
+  price: number;
+  /** How many of this item are in the order. */
+  qty: number;
   items: string;
   total: number;
   time: string;
@@ -73,8 +79,8 @@ const INITIAL_FAVORITES: FavoriteItem[] = [
 ];
 
 const INITIAL_UNPAID: UnpaidOrder[] = [
-  { id: '#BB-4655', items: '1x Cheesy Boom, 1x Coke',  total: 15.5, time: '2 hours ago' },
-  { id: '#BB-4600', items: '2x Smoky Burst',            total: 26.0, time: 'Yesterday'  },
+  { id: '#BB-4655', name: 'Cheesy Boom + Coke', price: 15.5, qty: 1, items: '1x Cheesy Boom, 1x Coke', total: 15.5, time: '2 hours ago' },
+  { id: '#BB-4600', name: 'Smoky Burst',        price: 13.0, qty: 2, items: '2x Smoky Burst',           total: 26.0, time: 'Yesterday'  },
 ];
 
 const INITIAL_NOTIFICATIONS: AppNotification[] = [
@@ -100,17 +106,42 @@ export function OrdersProvider({ children }: { children: ReactNode }) {
     setNotifications((prev) => [{ ...n, id: notifCountRef.current }, ...prev]);
   }, []);
 
-  /** Returns the new order id so callers can reference it in notifications. */
+  /**
+   * Returns the order id so callers can reference it in notifications.
+   * If the same product is already unpaid, its quantity is incremented and the
+   * row is bumped to the top instead of creating a duplicate entry.
+   */
   const addUnpaidOrder = useCallback((item: BuyItem): string => {
+    const existing = unpaidOrders.find((o) => o.name === item.name);
+
+    if (existing) {
+      const id = existing.id;
+      setUnpaidOrders((prev) => {
+        const idx = prev.findIndex((o) => o.id === id);
+        if (idx === -1) return prev;
+        const qty = prev[idx].qty + 1;
+        const updated: UnpaidOrder = {
+          ...prev[idx],
+          qty,
+          items: `${qty}x ${item.name}`,
+          total: item.price * qty,
+          time: 'Just now',
+        };
+        return [updated, ...prev.filter((_, i) => i !== idx)];
+      });
+      setBadgePulse((n) => n + 1);
+      return id;
+    }
+
     counterRef.current++;
     const id = `#BB-${counterRef.current}`;
     setUnpaidOrders((prev) => [
-      { id, items: `1x ${item.name}`, total: item.price, time: 'Just now' },
+      { id, name: item.name, price: item.price, qty: 1, items: `1x ${item.name}`, total: item.price, time: 'Just now' },
       ...prev,
     ]);
     setBadgePulse((n) => n + 1);
     return id;
-  }, []);
+  }, [unpaidOrders]);
 
   /** Adds order + fires buy notification atomically. Use for all buy paths. */
   const buyItem = useCallback((item: BuyItem, displayName: string) => {
@@ -137,7 +168,7 @@ export function OrdersProvider({ children }: { children: ReactNode }) {
         Icon:      CheckCircle2,
         iconClass: 'text-green-500 bg-green-50',
         title:     `Univer confirmed ${displayName}'s order.`,
-        desc:      `Order ${order.id} — ${order.items} has been paid and is now being processed.`,
+        desc:      `Order ${order.id} — ${order.items} has been paid and is now being processed.`, // items already includes qty (e.g. "3x Burger")
         time:      'Just now',
         unread:    true,
       });
