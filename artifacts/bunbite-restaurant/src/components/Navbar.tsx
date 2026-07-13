@@ -12,6 +12,7 @@ import {
   CreditCard,
   Settings,
   HelpCircle,
+  CheckCircle2,
 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -30,6 +31,7 @@ import PaymentMethodsModal from './PaymentMethodsModal';
 import PaymentMethodModal, { type PaymentSelection } from './PaymentMethodModal';
 import OrderConfirmationModal from './OrderConfirmationModal';
 import PaymentProcessingModal from './PaymentProcessingModal';
+import CancelPreorderModal from './CancelPreorderModal';
 import { useAuth } from '@/context/AuthContext';
 import type { AuthUser } from '@/context/AuthContext';
 import { useOrders } from '@/context/OrdersContext';
@@ -45,8 +47,8 @@ const MOCK_ORDERS = [
 ];
 
 const MOCK_PREORDERS = [
-  { id: '#PO-1042', items: '3x Cheesy Boom',             when: 'Tomorrow, 12:30 PM',      status: 'Confirmed', statusColor: 'bg-green-100 text-green-700' },
-  { id: '#PO-1039', items: '1x Smoky Burst, 2x Fries',   when: 'Fri, Jul 10 · 7:00 PM',  status: 'Pending',   statusColor: 'bg-amber-100 text-amber-700' },
+  { id: '#PO-1042', items: '3x Cheesy Boom',             when: 'Tomorrow, 12:30 PM',      status: 'Confirmed', statusColor: 'bg-green-100 text-green-700', fee: 5.0 },
+  { id: '#PO-1039', items: '1x Smoky Burst, 2x Fries',   when: 'Fri, Jul 10 · 7:00 PM',  status: 'Pending',   statusColor: 'bg-amber-100 text-amber-700', fee: 0   },
 ];
 
 /* Derive initials from a user object */
@@ -81,6 +83,10 @@ export default function Navbar() {
   const [checkoutOrders,   setCheckoutOrders]   = useState<UnpaidOrder[] | null>(null);
   const [checkoutStage,    setCheckoutStage]    = useState<'method' | 'confirm' | 'processing' | null>(null);
   const [checkoutPayment,  setCheckoutPayment]  = useState<PaymentSelection | null>(null);
+
+  /* Pre-orders + cancellation flow */
+  const [preOrders,    setPreOrders]    = useState(MOCK_PREORDERS);
+  const [cancelTarget, setCancelTarget] = useState<typeof MOCK_PREORDERS[number] | null>(null);
 
   /* Register our login opener so any component can call openLoginModal() */
   useEffect(() => {
@@ -169,6 +175,28 @@ export default function Navbar() {
     setCheckoutStage(null);
   };
 
+  /* ── Pre-order cancellation ── */
+  const handleCancelRequest = (order: typeof MOCK_PREORDERS[number]) => {
+    setActivePopup(null);
+    setCancelTarget(order);
+  };
+
+  const handleCancelConfirm = () => {
+    if (!cancelTarget) return;
+    setPreOrders((prev) => prev.filter((o) => o.id !== cancelTarget.id));
+    addNotification({
+      Icon:      CheckCircle2,
+      iconClass: cancelTarget.fee > 0 ? 'text-red-500 bg-red-50' : 'text-green-500 bg-green-50',
+      title:     `Pre-order ${cancelTarget.id} cancelled`,
+      desc:      cancelTarget.fee > 0
+        ? `A ${cancelTarget.fee.toFixed(2)} cancellation fee was applied.`
+        : 'No cancellation fee was charged.',
+      time:      'Just now',
+      unread:    true,
+    });
+    setCancelTarget(null);
+  };
+
   const scrollTo = (id: string) => {
     setIsMobileMenuOpen(false);
     const element = document.getElementById(id);
@@ -247,22 +275,31 @@ export default function Navbar() {
                       <p className="text-[11px] text-gray-400 mt-0.5">{order.time} · ${order.total.toFixed(2)}</p>
                     </div>
                   </label>
-                  <button
-                    onClick={() => {
-                      removeUnpaidOrder(order.id);
-                      setSelectedOrderIds((prev) => {
-                        if (!prev.has(order.id)) return prev;
-                        const next = new Set(prev);
-                        next.delete(order.id);
-                        return next;
-                      });
-                    }}
-                    className="shrink-0 text-[11px] font-semibold text-gray-400 hover:text-red-500 px-2 py-1 rounded-full transition-colors"
-                    aria-label={`Remove ${order.name} from unpaid orders`}
-                    data-testid={`button-remove-unpaid-${order.id}`}
-                  >
-                    Remove
-                  </button>
+                  <div className="flex items-center gap-1.5 shrink-0">
+                    <button
+                      onClick={() => startCheckout([order])}
+                      className="text-[11px] font-bold bg-secondary text-secondary-foreground px-3 py-1 rounded-full hover:scale-105 active:scale-95 transition-transform"
+                      data-testid={`button-buy-now-unpaid-${order.id}`}
+                    >
+                      Buy Now
+                    </button>
+                    <button
+                      onClick={() => {
+                        removeUnpaidOrder(order.id);
+                        setSelectedOrderIds((prev) => {
+                          if (!prev.has(order.id)) return prev;
+                          const next = new Set(prev);
+                          next.delete(order.id);
+                          return next;
+                        });
+                      }}
+                      className="text-[11px] font-semibold text-gray-400 hover:text-red-500 px-2 py-1 rounded-full transition-colors"
+                      aria-label={`Remove ${order.name} from unpaid orders`}
+                      data-testid={`button-remove-unpaid-${order.id}`}
+                    >
+                      Remove
+                    </button>
+                  </div>
                 </div>
               );
             })}
@@ -291,20 +328,33 @@ export default function Navbar() {
   const PreOrderBubble = () => (
     <div className="w-80 max-w-[85vw]">
       <p className="px-4 pt-4 pb-2 text-sm font-bold text-gray-800">Pre-Orders</p>
-      <div className="max-h-80 overflow-y-auto divide-y divide-gray-100">
-        {MOCK_PREORDERS.map((order) => (
-          <div key={order.id} className="px-4 py-3 flex items-start justify-between gap-3">
-            <div className="min-w-0">
-              <p className="text-sm font-semibold text-gray-800">{order.id}</p>
-              <p className="text-xs text-gray-500 truncate">{order.items}</p>
-              <p className="text-[11px] text-gray-400 mt-0.5">{order.when}</p>
+      {preOrders.length === 0 ? (
+        <p className="px-4 pb-4 text-xs text-gray-400">No pre-orders yet.</p>
+      ) : (
+        <div className="max-h-80 overflow-y-auto divide-y divide-gray-100">
+          {preOrders.map((order) => (
+            <div key={order.id} className="px-4 py-3 flex items-start justify-between gap-3">
+              <div className="min-w-0">
+                <p className="text-sm font-semibold text-gray-800">{order.id}</p>
+                <p className="text-xs text-gray-500 truncate">{order.items}</p>
+                <p className="text-[11px] text-gray-400 mt-0.5">{order.when}</p>
+              </div>
+              <div className="flex flex-col items-end gap-1.5 shrink-0">
+                <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${order.statusColor}`}>
+                  {order.status}
+                </span>
+                <button
+                  onClick={() => handleCancelRequest(order)}
+                  className="text-[11px] font-semibold text-gray-400 hover:text-red-500 transition-colors"
+                  data-testid={`button-cancel-preorder-${order.id}`}
+                >
+                  Cancel
+                </button>
+              </div>
             </div>
-            <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full shrink-0 ${order.statusColor}`}>
-              {order.status}
-            </span>
-          </div>
-        ))}
-      </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 
@@ -711,6 +761,14 @@ export default function Navbar() {
           />
         </>
       )}
+
+      {/* Pre-order cancellation confirmation */}
+      <CancelPreorderModal
+        isOpen={cancelTarget !== null}
+        order={cancelTarget}
+        onClose={() => setCancelTarget(null)}
+        onConfirm={handleCancelConfirm}
+      />
     </>
   );
 }
