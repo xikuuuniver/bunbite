@@ -33,7 +33,7 @@ import PaymentProcessingModal from './PaymentProcessingModal';
 import { useAuth } from '@/context/AuthContext';
 import type { AuthUser } from '@/context/AuthContext';
 import { useOrders } from '@/context/OrdersContext';
-import type { UnpaidOrder } from '@/context/OrdersContext';
+import type { UnpaidOrder, FavoriteItem } from '@/context/OrdersContext';
 
 type PopupKey = 'orders' | 'preorder' | 'favorites' | 'notifications';
 
@@ -105,6 +105,19 @@ export default function Navbar() {
   }, [user, pendingBuy]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleSignupComplete = (u: AuthUser) => { login(u); setIsSignupOpen(false); };
+
+  /* Buy Now from the Favorites popup — same workflow as buying from the menu. */
+  const handleFavoriteBuy = (item: FavoriteItem) => {
+    const buyPayload = { name: item.name, price: item.price };
+    if (!user) {
+      setPendingBuy(buyPayload);
+      setActivePopup(null);
+      setIsLoginOpen(true);
+    } else {
+      buyItem(buyPayload, user.firstName || user.username);
+      setActivePopup(null);
+    }
+  };
 
   /* ── Unpaid order selection ── */
   const toggleOrderSelection = (id: string) => {
@@ -290,7 +303,16 @@ export default function Navbar() {
                 {item.desc && <p className="text-xs text-gray-500 truncate">{item.desc}</p>}
                 <p className="text-xs font-bold text-gray-700 mt-0.5">${item.price.toFixed(2)}</p>
               </div>
-              <Heart size={16} className="text-secondary fill-secondary shrink-0" />
+              <div className="flex flex-col items-end gap-1.5 shrink-0">
+                <Heart size={14} className="text-secondary fill-secondary" />
+                <button
+                  onClick={() => handleFavoriteBuy(item)}
+                  className="text-[11px] font-bold bg-secondary text-secondary-foreground px-3 py-1 rounded-full hover:scale-105 active:scale-95 transition-transform"
+                  data-testid={`button-favorite-buy-${item.name}`}
+                >
+                  Buy Now
+                </button>
+              </div>
             </div>
           ))}
         </div>
