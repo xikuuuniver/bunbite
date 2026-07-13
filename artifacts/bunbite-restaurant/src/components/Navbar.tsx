@@ -12,7 +12,7 @@ import {
   CreditCard,
   Settings,
   HelpCircle,
-  Check,
+  CheckCircle2,
 } from 'lucide-react';
 import {
   DropdownMenu,
