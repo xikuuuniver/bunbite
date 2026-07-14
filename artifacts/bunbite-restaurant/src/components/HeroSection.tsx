@@ -1,6 +1,5 @@
 import { motion } from 'framer-motion';
-// @ts-ignore
-import heroBurgerImg from '@assets/generated_images/hero-burger.jpg';
+import HeroNotes from './HeroNotes';
 
 export default function HeroSection() {
   const scrollToMenu = () => {
@@ -56,23 +55,7 @@ export default function HeroSection() {
           </motion.div>
         </motion.div>
 
-        <motion.div 
-          className="relative w-full aspect-square max-w-lg mx-auto"
-          initial={{ opacity: 0, scale: 0.8, rotate: 5 }}
-          animate={{ opacity: 1, scale: 1, rotate: 0 }}
-          transition={{ duration: 1, ease: "easeOut" }}
-        >
-          {/* Cloud Blob Background */}
-          <div className="absolute inset-0 bg-background rounded-full mix-blend-screen opacity-20 filter blur-3xl transform scale-110"></div>
-          <div className="absolute inset-4 bg-background rounded-[40%_60%_70%_30%/40%_50%_60%_50%] shadow-[0_0_50px_rgba(245,237,216,0.3)] animate-[spin_20s_linear_infinite] z-0"></div>
-          
-          <img 
-            src={heroBurgerImg} 
-            alt="Delicious massive burger held by hands" 
-            className="relative z-10 w-full h-full object-cover rounded-full shadow-2xl transform hover:scale-105 transition-transform duration-500 border-4 border-secondary"
-            data-testid="img-hero-burger"
-          />
-        </motion.div>
+        <HeroNotes />
       </div>
     </section>
   );
