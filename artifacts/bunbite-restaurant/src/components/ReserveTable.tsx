@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { CalendarCheck } from 'lucide-react';
 import { useForm } from 'react-hook-form';
@@ -7,6 +8,7 @@ import * as z from 'zod';
 import peopleImg from '@assets/generated_images/reservation-people.jpg';
 import { useToast } from '@/hooks/use-toast';
 import { useOrders } from '@/context/OrdersContext';
+import { useAuth } from '@/context/AuthContext';
 import {
   Form,
   FormControl,
@@ -42,8 +44,12 @@ const formSchema = z.object({
 
 export default function ReserveTable() {
   const { toast } = useToast();
-  const { addPreOrder, addNotification } = useOrders();
-  
+  const { addPreOrder, addNotification, openLoginModal } = useOrders();
+  const { user } = useAuth();
+
+  /** Reservation submitted while logged out — flushed automatically once login completes. */
+  const [pendingReservation, setPendingReservation] = useState<z.infer<typeof formSchema> | null>(null);
+
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -56,7 +62,7 @@ export default function ReserveTable() {
     },
   });
 
-  function onSubmit(values: z.infer<typeof formSchema>) {
+  function submitReservation(values: z.infer<typeof formSchema>) {
     const dateLabel = formatReservationDate(values.date);
     const timeLabel = TIME_LABELS[values.time] ?? values.time;
     const guestLabel = `${values.guests} ${values.guests === '1' ? 'Guest' : 'Guests'}`;
@@ -85,6 +91,25 @@ export default function ReserveTable() {
     });
     form.reset();
   }
+
+  function onSubmit(values: z.infer<typeof formSchema>) {
+    if (!user) {
+      // Not logged in — hold the reservation and prompt login. Submission
+      // resumes automatically once the user signs in (see effect below).
+      setPendingReservation(values);
+      openLoginModal();
+      return;
+    }
+    submitReservation(values);
+  }
+
+  /* Flush a reservation that was attempted before login, once auth state commits. */
+  useEffect(() => {
+    if (user && pendingReservation) {
+      submitReservation(pendingReservation);
+      setPendingReservation(null);
+    }
+  }, [user, pendingReservation]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
     <section id="reserve" className="py-24 bg-background">
