@@ -77,9 +77,11 @@ interface OrdersContextValue {
   isFavorite: (name: string) => boolean;
   /** Live pre-order list — shown in the Navbar Pre-Orders popup. */
   preOrders: PreOrder[];
-  /** Adds a new pre-order (e.g. from a table reservation) and returns its id. Does not fire a notification. */
+  /** Adds a new table booking and returns its id. Does not fire a notification. */
   addPreOrder: (order: Omit<PreOrder, 'id'>) => string;
   removePreOrder: (id: string) => void;
+  /** Updates the staff-managed status of a table booking. */
+  updatePreOrderStatus: (id: string, status: BookingStatus) => void;
 }
 
 const OrdersContext = createContext<OrdersContextValue | null>(null);
@@ -102,19 +104,76 @@ const INITIAL_NOTIFICATIONS: AppNotification[] = [
   { id: 4, Icon: CheckCircle2, iconClass: 'text-green-500 bg-green-50', title: 'Order #BB-4655 placed',             desc: '1x Cheesy Boom — awaiting payment.',              time: '2 hours ago',unread: false },
 ];
 
+/** Staff-managed status for a table booking. */
+export type BookingStatus = 'pending' | 'approved' | 'arrived' | 'cancelled';
+
+/** Maps a BookingStatus to its Tailwind badge classes (used by Navbar + dashboard). */
+export const BOOKING_STATUS_COLOR: Record<BookingStatus, string> = {
+  pending:   'bg-amber-100 text-amber-700',
+  approved:  'bg-green-100 text-green-700',
+  arrived:   'bg-blue-100 text-blue-700',
+  cancelled: 'bg-red-100 text-red-700',
+};
+
 export interface PreOrder {
   id: string;
-  items: string;
-  when: string;
-  status: string;
-  statusColor: string;
-  /** Fee charged if this pre-order is cancelled. 0 means cancellation is free. */
+  /** Guest's full name, collected at booking time. */
+  fullName: string;
+  /** Guest's username (auth account). */
+  username: string;
+  /** Human-readable date + time string, e.g. "Jul 16, 2026 · 12:30 PM". */
+  bookingDateTime: string;
+  /** Number of guests in the booking. */
+  guests: number;
+  /** Fee charged if this booking is cancelled. 0 means cancellation is free. */
   fee: number;
+  /** Staff-managed booking status. */
+  status: BookingStatus;
+  /** Tailwind badge classes derived from status — kept for Navbar badge compat. */
+  statusColor: string;
+  /** Short display summary used in Navbar pre-orders bubble. */
+  items: string;
+  /** Alias of bookingDateTime — used in notification text. */
+  when: string;
 }
 
 const INITIAL_PREORDERS: PreOrder[] = [
-  { id: '#PO-1042', items: '3x Cheesy Boom',           when: 'Tomorrow, 12:30 PM',     status: 'Confirmed', statusColor: 'bg-green-100 text-green-700', fee: 5.0 },
-  { id: '#PO-1039', items: '1x Smoky Burst, 2x Fries', when: 'Fri, Jul 10 · 7:00 PM',  status: 'Pending',   statusColor: 'bg-amber-100 text-amber-700', fee: 0   },
+  {
+    id: '#PO-1042', fullName: 'Marcus Johnson', username: 'marcus.j',
+    bookingDateTime: 'Jul 16, 2026 · 12:30 PM', guests: 3, fee: 5.0,
+    status: 'approved', statusColor: BOOKING_STATUS_COLOR.approved,
+    items: 'Table for 3 — Marcus Johnson', when: 'Jul 16, 2026 · 12:30 PM',
+  },
+  {
+    id: '#PO-1039', fullName: 'Sofia Reyes', username: 'sofia.reyes',
+    bookingDateTime: 'Jul 16, 2026 · 7:00 PM', guests: 2, fee: 0,
+    status: 'pending', statusColor: BOOKING_STATUS_COLOR.pending,
+    items: 'Table for 2 — Sofia Reyes', when: 'Jul 16, 2026 · 7:00 PM',
+  },
+  {
+    id: '#PO-1035', fullName: 'Daniel Park', username: 'dpark99',
+    bookingDateTime: 'Jul 15, 2026 · 6:00 PM', guests: 5, fee: 10.0,
+    status: 'arrived', statusColor: BOOKING_STATUS_COLOR.arrived,
+    items: 'Table for 5 — Daniel Park', when: 'Jul 15, 2026 · 6:00 PM',
+  },
+  {
+    id: '#PO-1030', fullName: 'Amara Osei', username: 'amara.osei',
+    bookingDateTime: 'Jul 15, 2026 · 2:00 PM', guests: 4, fee: 0,
+    status: 'cancelled', statusColor: BOOKING_STATUS_COLOR.cancelled,
+    items: 'Table for 4 — Amara Osei', when: 'Jul 15, 2026 · 2:00 PM',
+  },
+  {
+    id: '#PO-1028', fullName: 'Leo Schneider', username: 'leo.s',
+    bookingDateTime: 'Jul 17, 2026 · 10:00 AM', guests: 2, fee: 0,
+    status: 'pending', statusColor: BOOKING_STATUS_COLOR.pending,
+    items: 'Table for 2 — Leo Schneider', when: 'Jul 17, 2026 · 10:00 AM',
+  },
+  {
+    id: '#PO-1025', fullName: 'Priya Sharma', username: 'priya.sharma',
+    bookingDateTime: 'Jul 17, 2026 · 8:00 PM', guests: 6, fee: 15.0,
+    status: 'approved', statusColor: BOOKING_STATUS_COLOR.approved,
+    items: 'Table for 6 — Priya Sharma', when: 'Jul 17, 2026 · 8:00 PM',
+  },
 ];
 
 export function OrdersProvider({ children }: { children: ReactNode }) {
@@ -220,6 +279,13 @@ export function OrdersProvider({ children }: { children: ReactNode }) {
   const removePreOrder = useCallback((id: string) =>
     setPreOrders((prev) => prev.filter((o) => o.id !== id)), []);
 
+  /** Updates the staff-managed status of a table booking and keeps statusColor in sync. */
+  const updatePreOrderStatus = useCallback((id: string, status: BookingStatus) => {
+    setPreOrders((prev) =>
+      prev.map((o) => o.id === id ? { ...o, status, statusColor: BOOKING_STATUS_COLOR[status] } : o),
+    );
+  }, []);
+
   const isFavorite = useCallback(
     (name: string) => favorites.some((f) => f.name === name),
     [favorites],
@@ -246,7 +312,7 @@ export function OrdersProvider({ children }: { children: ReactNode }) {
     <OrdersContext.Provider value={{
       unpaidOrders, addUnpaidOrder, removeUnpaidOrder, buyItem, confirmOrders, updateOrderStatus,
       favorites, toggleFavorite, isFavorite,
-      preOrders, addPreOrder, removePreOrder,
+      preOrders, addPreOrder, removePreOrder, updatePreOrderStatus,
       pendingBuy, setPendingBuy,
       badgePulse, openLoginModal, registerLoginOpener,
       notifications, addNotification, unreadCount,

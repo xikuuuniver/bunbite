@@ -78,7 +78,7 @@ export function buildWidgetCatalog(ctx: WidgetContext): WidgetDef[] {
     },
     {
       id: 'upcoming-reservations',
-      label: 'Upcoming Reservations',
+      label: 'Upcoming Table Bookings',
       icon: CalendarCheck,
       accent: 'primary',
       value: String(ctx.preOrdersCount),

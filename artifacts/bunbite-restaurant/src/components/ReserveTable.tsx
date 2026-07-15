@@ -68,11 +68,15 @@ export default function ReserveTable() {
     const guestLabel = `${values.guests} ${values.guests === '1' ? 'Guest' : 'Guests'}`;
 
     const preOrderId = addPreOrder({
+      fullName: values.fullName,
+      username: user?.username ?? 'guest',
+      bookingDateTime: `${dateLabel}, ${timeLabel}`,
+      guests: parseInt(values.guests, 10),
+      fee: 0,
+      status: 'pending',
+      statusColor: 'bg-amber-100 text-amber-700',
       items: `Table for ${guestLabel} — ${values.fullName}`,
       when: `${dateLabel}, ${timeLabel}`,
-      status: 'Confirmed',
-      statusColor: 'bg-green-100 text-green-700',
-      fee: 0,
     });
 
     addNotification({

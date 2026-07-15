@@ -14,7 +14,7 @@ export const dashboardNav: DashboardNavItem[] = [
   { slug: '',              label: 'Overview',             icon: LayoutDashboard },
   { slug: 'financial',     label: 'Financial',            icon: Wallet },
   { slug: 'orders',        label: 'Orders',                icon: ShoppingCart },
-  { slug: 'reservations',  label: 'Reservations',          icon: CalendarCheck },
+  { slug: 'reservations',  label: 'Table Bookings',         icon: CalendarCheck },
   { slug: 'menu',          label: 'Menu Management',       icon: UtensilsCrossed },
   { slug: 'inventory',     label: 'Inventory',             icon: Boxes },
   { slug: 'resources',     label: 'Resources',             icon: FolderOpen },

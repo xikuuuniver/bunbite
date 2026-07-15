@@ -1,72 +1,191 @@
+import { useState, useMemo } from 'react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
-import { X, CalendarCheck, Clock3, Users2 } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { CalendarCheck, Clock3, CheckCircle2, Users2, TableProperties, XCircle, Search } from 'lucide-react';
 import PageHeader from '../components/PageHeader';
 import StatCard from '../components/StatCard';
-import { useOrders } from '@/context/OrdersContext';
+import { useOrders, type BookingStatus, BOOKING_STATUS_COLOR } from '@/context/OrdersContext';
 import { useToast } from '@/hooks/use-toast';
 
+const TOTAL_TABLES = 20;
+
+const BOOKING_STATUS_META: Record<BookingStatus, { label: string; badgeClass: string }> = {
+  pending:   { label: 'Pending',   badgeClass: 'bg-amber-50 text-amber-700 border-amber-200'  },
+  approved:  { label: 'Approved',  badgeClass: 'bg-green-50 text-green-700 border-green-200'  },
+  arrived:   { label: 'Arrived',   badgeClass: 'bg-blue-50 text-blue-700 border-blue-200'     },
+  cancelled: { label: 'Cancelled', badgeClass: 'bg-red-50 text-red-700 border-red-200'        },
+};
+
+const STATUS_OPTIONS: BookingStatus[] = ['pending', 'approved', 'arrived', 'cancelled'];
+
+const FILTER_TABS: Array<{ value: BookingStatus | 'all'; label: string }> = [
+  { value: 'all',       label: 'All'       },
+  { value: 'pending',   label: 'Pending'   },
+  { value: 'approved',  label: 'Approved'  },
+  { value: 'arrived',   label: 'Arrived'   },
+  { value: 'cancelled', label: 'Cancelled' },
+];
+
 export default function Reservations() {
-  const { preOrders, removePreOrder } = useOrders();
+  const { preOrders, updatePreOrderStatus } = useOrders();
   const { toast } = useToast();
+  const [query, setQuery] = useState('');
+  const [statusFilter, setStatusFilter] = useState<BookingStatus | 'all'>('all');
 
-  const confirmed = preOrders.filter((p) => p.status === 'Confirmed').length;
-  const pending = preOrders.filter((p) => p.status === 'Pending').length;
+  const countBy = (status: BookingStatus) => preOrders.filter((p) => p.status === status).length;
+  const activeCount = preOrders.filter((p) => p.status !== 'cancelled').length;
+  const availableTables = Math.max(0, TOTAL_TABLES - activeCount);
 
-  const cancel = (id: string) => {
-    removePreOrder(id);
-    toast({ title: 'Reservation cancelled', description: `${id} has been removed from the schedule.` });
+  const filtered = useMemo(() => {
+    const q = query.toLowerCase();
+    return preOrders.filter((p) => {
+      const matchesQuery =
+        !q ||
+        p.fullName.toLowerCase().includes(q) ||
+        p.username.toLowerCase().includes(q) ||
+        p.id.toLowerCase().includes(q);
+      const matchesStatus = statusFilter === 'all' || p.status === statusFilter;
+      return matchesQuery && matchesStatus;
+    });
+  }, [preOrders, query, statusFilter]);
+
+  const handleStatusChange = (id: string, status: BookingStatus) => {
+    const booking = preOrders.find((p) => p.id === id);
+    if (!booking) return;
+    updatePreOrderStatus(id, status);
+    toast({
+      title: 'Booking status updated',
+      description: `${booking.id} (${booking.fullName}) is now ${BOOKING_STATUS_META[status].label}.`,
+    });
   };
 
   return (
     <div>
-      <PageHeader title="Reservations" description="See upcoming table bookings made from your website." />
+      <PageHeader title="Table Bookings" description="Manage all table bookings and track guest arrivals in real time." />
 
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
-        <StatCard index={0} label="Total Upcoming" value={String(preOrders.length)} icon={CalendarCheck} />
-        <StatCard index={1} label="Confirmed" value={String(confirmed)} icon={Users2} accent="secondary" />
-        <StatCard index={2} label="Pending Approval" value={String(pending)} icon={Clock3} />
+      {/* ── Stat widgets ── */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
+        <StatCard index={0} label="Pending Bookings"   value={String(countBy('pending'))}   icon={Clock3}           />
+        <StatCard index={1} label="Approved Bookings"  value={String(countBy('approved'))}  icon={CheckCircle2}     accent="secondary" />
+        <StatCard index={2} label="Arrived Guests"     value={String(countBy('arrived'))}   icon={Users2}           />
+        <StatCard index={3} label="Available Tables"   value={String(availableTables)}      icon={TableProperties}  accent="secondary" />
+        <StatCard index={4} label="Cancelled Bookings" value={String(countBy('cancelled'))} icon={XCircle}          />
       </div>
 
+      {/* ── Booking list card ── */}
       <Card className="rounded-2xl border-card-border">
-        <CardContent className="p-4 md:p-6 overflow-x-auto">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Reservation ID</TableHead>
-                <TableHead>Order / Party</TableHead>
-                <TableHead>When</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead className="text-right">Action</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {preOrders.map((p) => (
-                <TableRow key={p.id} data-testid={`row-reservation-${p.id}`}>
-                  <TableCell className="font-semibold">{p.id}</TableCell>
-                  <TableCell>{p.items}</TableCell>
-                  <TableCell className="text-muted-foreground">{p.when}</TableCell>
-                  <TableCell>
-                    <Badge variant="outline" className={p.statusColor}>{p.status}</Badge>
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <Button size="sm" variant="ghost" className="text-destructive hover:text-destructive" onClick={() => cancel(p.id)} data-testid={`button-cancel-${p.id}`}>
-                      <X size={14} className="mr-1" /> Cancel
-                    </Button>
-                  </TableCell>
-                </TableRow>
+        <CardContent className="p-4 md:p-6">
+
+          {/* Search + filter bar */}
+          <div className="flex flex-col sm:flex-row gap-3 mb-5">
+            <div className="relative w-full sm:max-w-xs">
+              <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder="Search name, username, or booking #…"
+                className="pl-8"
+                data-testid="input-bookings-search"
+              />
+            </div>
+
+            {/* Status filter tabs */}
+            <div className="flex flex-wrap gap-1.5">
+              {FILTER_TABS.map((tab) => (
+                <button
+                  key={tab.value}
+                  onClick={() => setStatusFilter(tab.value)}
+                  data-testid={`filter-tab-${tab.value}`}
+                  className={[
+                    'px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors border',
+                    statusFilter === tab.value
+                      ? 'bg-foreground text-background border-foreground'
+                      : 'bg-transparent text-muted-foreground border-border hover:text-foreground hover:border-foreground/30',
+                  ].join(' ')}
+                >
+                  {tab.label}
+                  {tab.value !== 'all' && (
+                    <span className="ml-1.5 opacity-60">
+                      {countBy(tab.value as BookingStatus)}
+                    </span>
+                  )}
+                </button>
               ))}
-              {preOrders.length === 0 && (
+            </div>
+          </div>
+
+          {/* Table */}
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
                 <TableRow>
-                  <TableCell colSpan={5} className="text-center text-muted-foreground py-8">
-                    No upcoming reservations.
-                  </TableCell>
+                  <TableHead>Full Name</TableHead>
+                  <TableHead>Username</TableHead>
+                  <TableHead>Booking #</TableHead>
+                  <TableHead>Date & Time</TableHead>
+                  <TableHead className="text-center">Guests</TableHead>
+                  <TableHead className="text-right">Fee</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead className="text-right">Action</TableHead>
                 </TableRow>
-              )}
-            </TableBody>
-          </Table>
+              </TableHeader>
+              <TableBody>
+                {filtered.map((p) => (
+                  <TableRow key={p.id} data-testid={`row-booking-${p.id}`}>
+                    <TableCell className="font-semibold whitespace-nowrap">{p.fullName}</TableCell>
+                    <TableCell className="text-muted-foreground">@{p.username}</TableCell>
+                    <TableCell className="font-mono text-sm">{p.id}</TableCell>
+                    <TableCell className="text-muted-foreground whitespace-nowrap">{p.bookingDateTime}</TableCell>
+                    <TableCell className="text-center">{p.guests}</TableCell>
+                    <TableCell className="text-right">
+                      {p.fee > 0 ? `$${p.fee.toFixed(2)}` : <span className="text-muted-foreground text-xs">Free</span>}
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant="outline" className={BOOKING_STATUS_META[p.status].badgeClass}>
+                        {BOOKING_STATUS_META[p.status].label}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <Select
+                        value={p.status}
+                        onValueChange={(value) => handleStatusChange(p.id, value as BookingStatus)}
+                      >
+                        <SelectTrigger className="w-[140px] ml-auto" data-testid={`select-booking-status-${p.id}`}>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {STATUS_OPTIONS.map((status) => (
+                            <SelectItem
+                              key={status}
+                              value={status}
+                              data-testid={`option-booking-${status}-${p.id}`}
+                            >
+                              {BOOKING_STATUS_META[status].label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </TableCell>
+                  </TableRow>
+                ))}
+
+                {filtered.length === 0 && (
+                  <TableRow>
+                    <TableCell colSpan={8} className="text-center text-muted-foreground py-10">
+                      <CalendarCheck size={32} className="mx-auto mb-2 opacity-25" />
+                      {query || statusFilter !== 'all'
+                        ? 'No bookings match your search or filter.'
+                        : 'No table bookings yet.'}
+                    </TableCell>
+                  </TableRow>
+                )}
+              </TableBody>
+            </Table>
+          </div>
+
         </CardContent>
       </Card>
     </div>
