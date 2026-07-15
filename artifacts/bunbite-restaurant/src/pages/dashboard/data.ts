@@ -21,6 +21,13 @@ import icedDrinkImg from '@assets/generated_images/iced-drink.jpg';
 // @ts-ignore
 import chocolateLavaCakeImg from '@assets/generated_images/chocolate-lava-cake.jpg';
 
+export interface IngredientLine {
+  inventoryId: string;
+  name: string;
+  unit: string;
+  qty: string;
+}
+
 export interface MenuItem {
   id: string;
   name: string;
@@ -28,20 +35,114 @@ export interface MenuItem {
   price: number;
   cost: number;
   image: string;
-  status: 'Available' | '86\'d' | 'Seasonal';
+  status: 'Available' | "86'd" | 'Seasonal';
   sold: number;
+  /** Customer-facing description shown on the menu and product detail modal. */
+  desc?: string;
+  prepTime?: number;      // minutes
+  cookTime?: number;      // minutes
+  servingSize?: string;
+  calories?: number;
+  allergens?: string[];
+  nutritionNotes?: string;
+  instructions?: string;
+  tags?: string[];
+  priority?: number;
+  featured?: boolean;
+  ingredients?: IngredientLine[];
 }
 
 export const menuItems: MenuItem[] = [
-  { id: 'MI-01', name: 'Midnight Bite',   category: 'Burgers',  price: 12.00, cost: 4.10, image: midnightBiteImg,  status: 'Available', sold: 412 },
-  { id: 'MI-02', name: 'Cheesy Boom',     category: 'Burgers',  price: 14.00, cost: 4.80, image: cheesyBoomImg,    status: 'Available', sold: 588 },
-  { id: 'MI-03', name: 'Smoky Burst',     category: 'Burgers',  price: 13.00, cost: 4.40, image: smokyBurstImg,    status: 'Available', sold: 340 },
-  { id: 'MI-04', name: 'Spicy Bird',      category: 'Chicken',  price: 13.50, cost: 4.60, image: crispyChickenImg, status: 'Available', sold: 275 },
-  { id: 'MI-05', name: 'Pepperoni Classic', category: 'Pizza',  price: 17.00, cost: 5.90, image: firePizzaImg,     status: 'Seasonal',  sold: 190 },
-  { id: 'MI-06', name: 'Club Sandwich',   category: 'Sandwich', price: 11.50, cost: 3.90, image: clubSandwichImg,  status: 'Available', sold: 210 },
-  { id: 'MI-07', name: 'Golden Fries',    category: 'Sides',    price: 5.00,  cost: 1.20, image: goldenFriesImg,   status: 'Available', sold: 640 },
-  { id: 'MI-08', name: 'Iced Berry Cooler', category: 'Drinks', price: 4.50,  cost: 1.00, image: icedDrinkImg,     status: "86'd",      sold: 96  },
-  { id: 'MI-09', name: 'Chocolate Lava Cake', category: 'Desserts', price: 7.00, cost: 2.10, image: chocolateLavaCakeImg, status: 'Available', sold: 158 },
+  {
+    id: 'MI-01', name: 'Midnight Bite', category: 'Burgers', price: 12.00, cost: 4.10,
+    image: midnightBiteImg, status: 'Available', sold: 412,
+    desc: 'Dark smoky burger with activated charcoal bun, truffle mayo, aged cheddar and crispy shallots.',
+    prepTime: 10, cookTime: 12, servingSize: '1 burger', calories: 720,
+    allergens: ['Gluten', 'Dairy', 'Eggs'],
+    nutritionNotes: 'Protein: 34g · Fat: 38g · Carbs: 48g · Sodium: 890mg',
+    tags: ['house-special', 'smoky'],
+    priority: 1,
+  },
+  {
+    id: 'MI-02', name: 'Cheesy Boom', category: 'Burgers', price: 14.00, cost: 4.80,
+    image: cheesyBoomImg, status: 'Available', sold: 588,
+    desc: 'A devastating explosion of three melted cheeses overflowing on a double smash patty with caramelised onions.',
+    prepTime: 8, cookTime: 14, servingSize: '1 burger', calories: 860,
+    allergens: ['Gluten', 'Dairy'],
+    nutritionNotes: 'Protein: 42g · Fat: 48g · Carbs: 44g · Sodium: 1020mg',
+    tags: ['best-seller', 'cheesy'],
+    featured: true, priority: 2,
+  },
+  {
+    id: 'MI-03', name: 'Smoky Burst', category: 'Burgers', price: 13.00, cost: 4.40,
+    image: smokyBurstImg, status: 'Available', sold: 340,
+    desc: 'Thick-cut bacon, crispy onion rings and our signature hickory BBQ sauce on a brioche bun.',
+    prepTime: 10, cookTime: 15, servingSize: '1 burger', calories: 790,
+    allergens: ['Gluten', 'Dairy'],
+    nutritionNotes: 'Protein: 36g · Fat: 42g · Carbs: 52g · Sodium: 960mg',
+    tags: ['bbq', 'smoky'],
+    priority: 3,
+  },
+  {
+    id: 'MI-04', name: 'Spicy Bird', category: 'Chicken', price: 13.50, cost: 4.60,
+    image: crispyChickenImg, status: 'Available', sold: 275,
+    desc: 'Nashville hot chicken sandwich with house-brined pickles, honey drizzle and coleslaw on a toasted brioche.',
+    prepTime: 12, cookTime: 16, servingSize: '1 sandwich', calories: 680,
+    allergens: ['Gluten', 'Eggs'],
+    nutritionNotes: 'Protein: 38g · Fat: 28g · Carbs: 58g · Sodium: 1120mg',
+    tags: ['spicy', 'chicken'],
+    priority: 1,
+  },
+  {
+    id: 'MI-05', name: 'Pepperoni Classic', category: 'Pizza', price: 17.00, cost: 5.90,
+    image: firePizzaImg, status: 'Seasonal', sold: 190,
+    desc: 'Wood-fired crust loaded with San Marzano tomato sauce, hand-pulled mozzarella and cured pepperoni.',
+    prepTime: 20, cookTime: 18, servingSize: '4 slices', calories: 920,
+    allergens: ['Gluten', 'Dairy'],
+    nutritionNotes: 'Protein: 38g · Fat: 36g · Carbs: 88g · Sodium: 1340mg',
+    tags: ['pizza', 'seasonal'],
+    priority: 1,
+  },
+  {
+    id: 'MI-06', name: 'Club Sandwich', category: 'Sandwich', price: 11.50, cost: 3.90,
+    image: clubSandwichImg, status: 'Available', sold: 210,
+    desc: 'Triple-decker with smoked turkey, crispy bacon, garden lettuce, vine tomato and house mayo.',
+    prepTime: 8, cookTime: 5, servingSize: '1 sandwich', calories: 580,
+    allergens: ['Gluten', 'Eggs'],
+    nutritionNotes: 'Protein: 32g · Fat: 24g · Carbs: 42g · Sodium: 820mg',
+    tags: ['classic', 'sandwich'],
+    priority: 1,
+  },
+  {
+    id: 'MI-07', name: 'Golden Fries', category: 'Sides', price: 5.00, cost: 1.20,
+    image: goldenFriesImg, status: 'Available', sold: 640,
+    desc: 'Double-fried Idaho potatoes with flaked sea salt — crispy outside, fluffy inside.',
+    prepTime: 5, cookTime: 12, servingSize: 'Large portion', calories: 320,
+    allergens: ['Gluten'],
+    nutritionNotes: 'Protein: 4g · Fat: 14g · Carbs: 48g · Sodium: 380mg',
+    tags: ['fries', 'sides'],
+    priority: 1,
+  },
+  {
+    id: 'MI-08', name: 'Iced Berry Cooler', category: 'Drinks', price: 4.50, cost: 1.00,
+    image: icedDrinkImg, status: "86'd", sold: 96,
+    desc: 'Cold-brewed black tea shaken with mixed berries and a hint of fresh mint.',
+    prepTime: 3, cookTime: 0, servingSize: '16 oz', calories: 120,
+    allergens: [],
+    nutritionNotes: 'Protein: 0g · Fat: 0g · Carbs: 30g · Sugar: 22g',
+    tags: ['drink', 'cold'],
+    priority: 1,
+  },
+  {
+    id: 'MI-09', name: 'Chocolate Lava Cake', category: 'Desserts', price: 7.00, cost: 2.10,
+    image: chocolateLavaCakeImg, status: 'Available', sold: 158,
+    desc: 'Warm dark chocolate cake with a molten centre, served with a scoop of Madagascar vanilla ice cream.',
+    prepTime: 15, cookTime: 14, servingSize: '1 cake + scoop', calories: 580,
+    allergens: ['Dairy', 'Eggs', 'Gluten'],
+    nutritionNotes: 'Protein: 8g · Fat: 28g · Carbs: 68g · Sugar: 46g',
+    tags: ['dessert', 'chocolate'],
+    priority: 1,
+  },
 ];
 
 export interface InventoryItem {

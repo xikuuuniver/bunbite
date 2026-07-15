@@ -22,7 +22,8 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
-import { inventoryItems, menuItems, type InventoryItem } from '../data';
+import { inventoryItems, menuItems, type InventoryItem, type IngredientLine } from '../data';
+import { useMenu } from '@/context/MenuContext';
 import {
   ImagePlus,
   X,
@@ -43,13 +44,6 @@ import {
 import { cn } from '@/lib/utils';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
-
-interface IngredientLine {
-  inventoryId: string;
-  name: string;
-  unit: string;
-  qty: string;
-}
 
 type RecipeStatus = 'Available' | "86'd";
 
@@ -102,6 +96,7 @@ interface Props {
 
 export default function NewRecipeModal({ open, onOpenChange }: Props) {
   const { toast } = useToast();
+  const { addMenuItem } = useMenu();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // ── Basic info ────────────────────────────────────────────────────────────
@@ -225,9 +220,29 @@ export default function NewRecipeModal({ open, onOpenChange }: Props) {
       return;
     }
 
+    addMenuItem({
+      name: name.trim(),
+      category,
+      price: parseFloat(price),
+      image: imagePreview ?? '',
+      status,
+      desc: description.trim() || undefined,
+      prepTime: prepTime ? parseInt(prepTime, 10) : undefined,
+      cookTime: cookTime ? parseInt(cookTime, 10) : undefined,
+      servingSize: servingSize.trim() || undefined,
+      calories: calories ? parseInt(calories, 10) : undefined,
+      allergens: allergens.length > 0 ? allergens : undefined,
+      nutritionNotes: nutritionNotes.trim() || undefined,
+      instructions: instructions.trim() || undefined,
+      tags: tags.trim() ? tags.split(',').map((t) => t.trim()).filter(Boolean) : undefined,
+      priority: priority ? parseInt(priority, 10) : undefined,
+      featured,
+      ingredients: ingredients.length > 0 ? ingredients : undefined,
+    });
+
     toast({
       title: 'Recipe saved!',
-      description: `"${name.trim()}" has been added to the ${category} menu.`,
+      description: `"${name.trim()}" has been added to the ${category} menu and is now live.`,
     });
     handleClose();
   };

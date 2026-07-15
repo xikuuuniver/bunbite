@@ -13,12 +13,13 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Search, Pencil, Trash2, Plus, ChefHat, Tag, ChevronDown } from 'lucide-react';
 import PageHeader from '../components/PageHeader';
-import { menuItems as initialItems, type MenuItem } from '../data';
+import { type MenuItem } from '../data';
 import { useToast } from '@/hooks/use-toast';
+import { useMenu } from '@/context/MenuContext';
 import NewRecipeModal from './NewRecipeModal';
 
 export default function MenuManagement() {
-  const [items, setItems] = useState<MenuItem[]>(initialItems);
+  const { menuItems: items, updateMenuItem, removeMenuItem } = useMenu();
   const [query, setQuery] = useState('');
   const [recipeModalOpen, setRecipeModalOpen] = useState(false);
   const { toast } = useToast();
@@ -38,15 +39,13 @@ export default function MenuManagement() {
   }, [filtered]);
 
   const toggleAvailability = (id: string) => {
-    setItems((prev) =>
-      prev.map((i) =>
-        i.id === id ? { ...i, status: i.status === "86'd" ? 'Available' : "86'd" } : i,
-      ),
-    );
+    const item = items.find((i) => i.id === id);
+    if (!item) return;
+    updateMenuItem(id, { status: item.status === "86'd" ? 'Available' : "86'd" });
   };
 
   const removeItem = (id: string, name: string) => {
-    setItems((prev) => prev.filter((i) => i.id !== id));
+    removeMenuItem(id);
     toast({ title: 'Menu item removed', description: `${name} was removed from the live menu.` });
   };
 
