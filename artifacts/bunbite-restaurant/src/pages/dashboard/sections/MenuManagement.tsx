@@ -1,5 +1,4 @@
-import { useMemo } from 'react';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { motion } from 'framer-motion';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -16,10 +15,12 @@ import { Search, Pencil, Trash2, Plus, ChefHat, Tag, ChevronDown } from 'lucide-
 import PageHeader from '../components/PageHeader';
 import { menuItems as initialItems, type MenuItem } from '../data';
 import { useToast } from '@/hooks/use-toast';
+import NewRecipeModal from './NewRecipeModal';
 
 export default function MenuManagement() {
   const [items, setItems] = useState<MenuItem[]>(initialItems);
   const [query, setQuery] = useState('');
+  const [recipeModalOpen, setRecipeModalOpen] = useState(false);
   const { toast } = useToast();
 
   const filtered = items.filter((i) =>
@@ -66,9 +67,7 @@ export default function MenuManagement() {
             <DropdownMenuContent align="end" className="w-44">
               <DropdownMenuItem
                 data-testid="menu-new-recipe"
-                onSelect={() =>
-                  toast({ title: 'New Recipe', description: 'Opening recipe builder…' })
-                }
+                onSelect={() => setRecipeModalOpen(true)}
               >
                 <ChefHat size={15} className="mr-2 text-muted-foreground" />
                 New Recipe
@@ -189,6 +188,8 @@ export default function MenuManagement() {
           </section>
         ))}
       </div>
+
+      <NewRecipeModal open={recipeModalOpen} onOpenChange={setRecipeModalOpen} />
     </div>
   );
 }
