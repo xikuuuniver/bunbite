@@ -201,6 +201,254 @@ export const monthlyFinance = [
   { month: 'Jul', revenue: 43850, expenses: 25600 },
 ];
 
+// ---------------------------------------------------------------------------
+// Financial section: unified time-period filter, expense ledger, and
+// order/revenue analytics. "Today" is Jul 15, 2026 (a partial month-to-date
+// July). All figures below are hand-reconciled so stat totals, the trend
+// chart, and the itemized records/top-items tables agree with each other.
+// ---------------------------------------------------------------------------
+
+export type FinancePeriodId = 'today' | 'week' | 'jul2026' | 'jun2026' | 'may2026' | 'apr2026' | 'mar2026' | 'feb2026';
+
+export interface FinancePeriod {
+  id: FinancePeriodId;
+  label: string;
+  shortLabel: string;
+  kind: 'today' | 'week' | 'month';
+  monthKey?: string;
+}
+
+export const financePeriods: FinancePeriod[] = [
+  { id: 'today',   label: 'Today (Jul 15, 2026)', shortLabel: 'Today',           kind: 'today' },
+  { id: 'week',    label: 'This Week',            shortLabel: 'This Week',       kind: 'week' },
+  { id: 'jul2026', label: 'July 2026 (This Month)', shortLabel: 'July 2026',     kind: 'month', monthKey: 'Jul' },
+  { id: 'jun2026', label: 'June 2026',            shortLabel: 'June 2026',       kind: 'month', monthKey: 'Jun' },
+  { id: 'may2026', label: 'May 2026',             shortLabel: 'May 2026',        kind: 'month', monthKey: 'May' },
+  { id: 'apr2026', label: 'April 2026',           shortLabel: 'April 2026',      kind: 'month', monthKey: 'Apr' },
+  { id: 'mar2026', label: 'March 2026',           shortLabel: 'March 2026',      kind: 'month', monthKey: 'Mar' },
+  { id: 'feb2026', label: 'February 2026',        shortLabel: 'February 2026',   kind: 'month', monthKey: 'Feb' },
+];
+
+// Trend-chart data point shape shared across every period, at whatever
+// granularity makes sense (hours for today, days for the week, weeks for a month).
+export interface FinanceTrendPoint {
+  label: string;
+  revenue: number;
+  expenses: number;
+}
+
+const todayTrend: FinanceTrendPoint[] = [
+  { label: '8–11am',   revenue: 280, expenses: 180 },
+  { label: '11am–2pm', revenue: 610, expenses: 320 },
+  { label: '2–5pm',    revenue: 340, expenses: 210 },
+  { label: '5–8pm',    revenue: 590, expenses: 340 },
+  { label: '8–11pm',   revenue: 320, expenses: 210 },
+];
+
+const weekTrend: FinanceTrendPoint[] = weeklyFinance.map((d) => ({ label: d.day, revenue: d.revenue, expenses: d.expenses }));
+
+// Weekly breakdown within each month, reconciled to sum exactly to that
+// month's totals in `monthlyFinance`.
+const monthWeeklyTrend: Record<string, FinanceTrendPoint[]> = {
+  Feb: [
+    { label: 'Wk 1', revenue: 13600, expenses: 8100 },
+    { label: 'Wk 2', revenue: 14200, expenses: 8400 },
+    { label: 'Wk 3', revenue: 14800, expenses: 8700 },
+    { label: 'Wk 4', revenue: 15600, expenses: 9700 },
+  ],
+  Mar: [
+    { label: 'Wk 1', revenue: 14500, expenses: 8500 },
+    { label: 'Wk 2', revenue: 15200, expenses: 8900 },
+    { label: 'Wk 3', revenue: 15900, expenses: 9300 },
+    { label: 'Wk 4', revenue: 16800, expenses: 10400 },
+  ],
+  Apr: [
+    { label: 'Wk 1', revenue: 14200, expenses: 8300 },
+    { label: 'Wk 2', revenue: 14900, expenses: 8700 },
+    { label: 'Wk 3', revenue: 15600, expenses: 9100 },
+    { label: 'Wk 4', revenue: 16100, expenses: 10100 },
+  ],
+  May: [
+    { label: 'Wk 1', revenue: 15200, expenses: 8800 },
+    { label: 'Wk 2', revenue: 16100, expenses: 9200 },
+    { label: 'Wk 3', revenue: 16800, expenses: 9600 },
+    { label: 'Wk 4', revenue: 17800, expenses: 11100 },
+  ],
+  Jun: [
+    { label: 'Wk 1', revenue: 16200, expenses: 9500 },
+    { label: 'Wk 2', revenue: 17400, expenses: 10100 },
+    { label: 'Wk 3', revenue: 18600, expenses: 10800 },
+    { label: 'Wk 4', revenue: 19000, expenses: 11100 },
+  ],
+  Jul: [
+    { label: 'Wk 1 (1–7)',   revenue: 19800, expenses: 11400 },
+    { label: 'Wk 2 (8–14)',  revenue: 15200, expenses: 8900 },
+    { label: 'Wk 3 (15)',    revenue: 8850,  expenses: 5300 },
+  ],
+};
+
+export function getFinanceTrend(periodId: FinancePeriodId): FinanceTrendPoint[] {
+  const period = financePeriods.find((p) => p.id === periodId)!;
+  if (period.kind === 'today') return todayTrend;
+  if (period.kind === 'week') return weekTrend;
+  return monthWeeklyTrend[period.monthKey!] ?? [];
+}
+
+export function getFinanceTotals(periodId: FinancePeriodId): { revenue: number; expenses: number } {
+  const period = financePeriods.find((p) => p.id === periodId)!;
+  if (period.kind === 'today') return { revenue: todaysRevenue, expenses: todaysExpenses };
+  if (period.kind === 'week') {
+    return {
+      revenue: weeklyFinance.reduce((s, d) => s + d.revenue, 0),
+      expenses: weeklyFinance.reduce((s, d) => s + d.expenses, 0),
+    };
+  }
+  const month = monthlyFinance.find((m) => m.month === period.monthKey)!;
+  return { revenue: month.revenue, expenses: month.expenses };
+}
+
+/** Month-over-month revenue/expense change, for month periods that have a prior month in `monthlyFinance`. */
+export function getFinancePreviousMonthDelta(periodId: FinancePeriodId): { revenuePct: number; expensesPct: number } | null {
+  const period = financePeriods.find((p) => p.id === periodId)!;
+  if (period.kind !== 'month') return null;
+  const idx = monthlyFinance.findIndex((m) => m.month === period.monthKey);
+  if (idx <= 0) return null;
+  const current = monthlyFinance[idx];
+  const previous = monthlyFinance[idx - 1];
+  return {
+    revenuePct: ((current.revenue - previous.revenue) / previous.revenue) * 100,
+    expensesPct: ((current.expenses - previous.expenses) / previous.expenses) * 100,
+  };
+}
+
+// --- Expense ledger ---------------------------------------------------------
+
+export type ExpenseCategory = 'Ingredients & Supplies' | 'Staff Wages' | 'Rent & Utilities' | 'Marketing' | 'Equipment & Maintenance' | 'Delivery & Logistics';
+
+export interface ExpenseRecord {
+  id: string;
+  dateISO: string;
+  dateLabel: string;
+  category: ExpenseCategory;
+  description: string;
+  vendor: string;
+  amount: number;
+  monthKey: string;
+}
+
+export const expenseRecords: ExpenseRecord[] = [
+  // February
+  { id: 'EXP-2001', dateISO: '2026-02-03', dateLabel: 'Feb 3, 2026',  category: 'Rent & Utilities',        description: 'Monthly rent & utilities',        vendor: 'Harbor Point Leasing',   amount: 5200, monthKey: 'Feb' },
+  { id: 'EXP-2002', dateISO: '2026-02-07', dateLabel: 'Feb 7, 2026',  category: 'Staff Wages',             description: 'Payroll (Jan 28 – Feb 3)',        vendor: 'Payroll',                amount: 6100, monthKey: 'Feb' },
+  { id: 'EXP-2003', dateISO: '2026-02-12', dateLabel: 'Feb 12, 2026', category: 'Ingredients & Supplies',  description: 'Meat & produce bulk order',       vendor: 'GreenFields Meats',      amount: 4300, monthKey: 'Feb' },
+  { id: 'EXP-2004', dateISO: '2026-02-18', dateLabel: 'Feb 18, 2026', category: 'Staff Wages',             description: 'Payroll (Feb 11 – 17)',           vendor: 'Payroll',                amount: 6050, monthKey: 'Feb' },
+  { id: 'EXP-2005', dateISO: '2026-02-22', dateLabel: 'Feb 22, 2026', category: 'Marketing',               description: "Valentine's promo campaign",     vendor: 'Local Ad Co-op',         amount: 1850, monthKey: 'Feb' },
+  { id: 'EXP-2006', dateISO: '2026-02-27', dateLabel: 'Feb 27, 2026', category: 'Equipment & Maintenance', description: 'Grill hood deep cleaning',        vendor: 'Blaze Hood Services',    amount: 780,  monthKey: 'Feb' },
+  // March
+  { id: 'EXP-2007', dateISO: '2026-03-02', dateLabel: 'Mar 2, 2026',  category: 'Rent & Utilities',        description: 'Monthly rent & utilities',        vendor: 'Harbor Point Leasing',   amount: 5300, monthKey: 'Mar' },
+  { id: 'EXP-2008', dateISO: '2026-03-06', dateLabel: 'Mar 6, 2026',  category: 'Staff Wages',             description: 'Payroll (Feb 25 – Mar 3)',        vendor: 'Payroll',                amount: 6200, monthKey: 'Mar' },
+  { id: 'EXP-2009', dateISO: '2026-03-14', dateLabel: 'Mar 14, 2026', category: 'Ingredients & Supplies',  description: 'Bulk meat & dairy order',         vendor: 'DairyCo',                amount: 4700, monthKey: 'Mar' },
+  { id: 'EXP-2010', dateISO: '2026-03-19', dateLabel: 'Mar 19, 2026', category: 'Staff Wages',             description: 'Payroll (Mar 11 – 17)',           vendor: 'Payroll',                amount: 6150, monthKey: 'Mar' },
+  { id: 'EXP-2011', dateISO: '2026-03-23', dateLabel: 'Mar 23, 2026', category: 'Delivery & Logistics',    description: 'Delivery fleet maintenance',      vendor: 'RideWorks Garage',       amount: 590,  monthKey: 'Mar' },
+  { id: 'EXP-2012', dateISO: '2026-03-28', dateLabel: 'Mar 28, 2026', category: 'Marketing',               description: 'Spring menu launch ads',          vendor: 'Local Ad Co-op',         amount: 1420, monthKey: 'Mar' },
+  // April
+  { id: 'EXP-2013', dateISO: '2026-04-04', dateLabel: 'Apr 4, 2026',  category: 'Rent & Utilities',        description: 'Monthly rent & utilities',        vendor: 'Harbor Point Leasing',   amount: 5250, monthKey: 'Apr' },
+  { id: 'EXP-2014', dateISO: '2026-04-09', dateLabel: 'Apr 9, 2026',  category: 'Staff Wages',             description: 'Payroll (Mar 25 – 31)',           vendor: 'Payroll',                amount: 6180, monthKey: 'Apr' },
+  { id: 'EXP-2015', dateISO: '2026-04-15', dateLabel: 'Apr 15, 2026', category: 'Ingredients & Supplies',  description: 'Produce & bakery order',          vendor: 'Fresh Farms Co-op',      amount: 4500, monthKey: 'Apr' },
+  { id: 'EXP-2016', dateISO: '2026-04-20', dateLabel: 'Apr 20, 2026', category: 'Staff Wages',             description: 'Payroll (Apr 8 – 14)',            vendor: 'Payroll',                amount: 6100, monthKey: 'Apr' },
+  { id: 'EXP-2017', dateISO: '2026-04-25', dateLabel: 'Apr 25, 2026', category: 'Equipment & Maintenance', description: 'POS terminal upgrade',            vendor: 'BunBite IT Services',    amount: 1340, monthKey: 'Apr' },
+  { id: 'EXP-2018', dateISO: '2026-04-29', dateLabel: 'Apr 29, 2026', category: 'Marketing',               description: 'Loyalty app promo push',          vendor: 'AppBoost Media',         amount: 980,  monthKey: 'Apr' },
+  // May
+  { id: 'EXP-2019', dateISO: '2026-05-03', dateLabel: 'May 3, 2026',  category: 'Rent & Utilities',        description: 'Monthly rent & utilities',        vendor: 'Harbor Point Leasing',   amount: 5300, monthKey: 'May' },
+  { id: 'EXP-2020', dateISO: '2026-05-08', dateLabel: 'May 8, 2026',  category: 'Staff Wages',             description: 'Payroll (Apr 29 – May 5)',        vendor: 'Payroll',                amount: 6350, monthKey: 'May' },
+  { id: 'EXP-2021', dateISO: '2026-05-13', dateLabel: 'May 13, 2026', category: 'Ingredients & Supplies',  description: 'Bulk meat & produce order',       vendor: 'GreenFields Meats',      amount: 4900, monthKey: 'May' },
+  { id: 'EXP-2022', dateISO: '2026-05-18', dateLabel: 'May 18, 2026', category: 'Staff Wages',             description: 'Payroll (May 13 – 19)',           vendor: 'Payroll',                amount: 6300, monthKey: 'May' },
+  { id: 'EXP-2023', dateISO: '2026-05-24', dateLabel: 'May 24, 2026', category: 'Delivery & Logistics',    description: 'New delivery bikes (x2)',         vendor: 'RideWorks Garage',       amount: 2100, monthKey: 'May' },
+  { id: 'EXP-2024', dateISO: '2026-05-29', dateLabel: 'May 29, 2026', category: 'Marketing',               description: 'Summer campaign kickoff',         vendor: 'Local Ad Co-op',         amount: 1240, monthKey: 'May' },
+  // June
+  { id: 'EXP-2025', dateISO: '2026-06-02', dateLabel: 'Jun 2, 2026',  category: 'Rent & Utilities',        description: 'Monthly rent & utilities',        vendor: 'Harbor Point Leasing',   amount: 5350, monthKey: 'Jun' },
+  { id: 'EXP-2026', dateISO: '2026-06-06', dateLabel: 'Jun 6, 2026',  category: 'Staff Wages',             description: 'Payroll (May 27 – Jun 2)',        vendor: 'Payroll',                amount: 6500, monthKey: 'Jun' },
+  { id: 'EXP-2027', dateISO: '2026-06-12', dateLabel: 'Jun 12, 2026', category: 'Ingredients & Supplies',  description: 'Bulk meat, dairy & produce order',vendor: 'DairyCo',                amount: 5200, monthKey: 'Jun' },
+  { id: 'EXP-2028', dateISO: '2026-06-17', dateLabel: 'Jun 17, 2026', category: 'Staff Wages',             description: 'Payroll (Jun 10 – 16)',           vendor: 'Payroll',                amount: 6450, monthKey: 'Jun' },
+  { id: 'EXP-2029', dateISO: '2026-06-21', dateLabel: 'Jun 21, 2026', category: 'Equipment & Maintenance', description: 'Walk-in freezer repair',          vendor: 'Coldline Techs',         amount: 1680, monthKey: 'Jun' },
+  { id: 'EXP-2030', dateISO: '2026-06-26', dateLabel: 'Jun 26, 2026', category: 'Marketing',               description: 'Midnight Bite launch campaign',   vendor: 'AppBoost Media',         amount: 1950, monthKey: 'Jun' },
+  // July (month-to-date through Jul 15)
+  { id: 'EXP-2031', dateISO: '2026-07-03', dateLabel: 'Jul 3, 2026',  category: 'Rent & Utilities',        description: 'Monthly rent payment',            vendor: 'Harbor Point Leasing',   amount: 3200, monthKey: 'Jul' },
+  { id: 'EXP-2032', dateISO: '2026-07-04', dateLabel: 'Jul 4, 2026',  category: 'Equipment & Maintenance', description: 'Fryer servicing',                 vendor: 'Blaze Hood Services',    amount: 950,  monthKey: 'Jul' },
+  { id: 'EXP-2033', dateISO: '2026-07-06', dateLabel: 'Jul 6, 2026',  category: 'Staff Wages',             description: 'Payroll (Jun 30 – Jul 5)',        vendor: 'Payroll',                amount: 4200, monthKey: 'Jul' },
+  { id: 'EXP-2034', dateISO: '2026-07-09', dateLabel: 'Jul 9, 2026',  category: 'Ingredients & Supplies',  description: 'Weekly produce & meat order',     vendor: 'Fresh Farms Co-op',      amount: 2600, monthKey: 'Jul' },
+  { id: 'EXP-2035', dateISO: '2026-07-10', dateLabel: 'Jul 10, 2026', category: 'Marketing',               description: 'Local print ad placement',        vendor: 'Local Ad Co-op',         amount: 610,  monthKey: 'Jul' },
+  { id: 'EXP-2036', dateISO: '2026-07-12', dateLabel: 'Jul 12, 2026', category: 'Rent & Utilities',        description: 'Water & gas utilities',           vendor: 'City Utilities Dept.',   amount: 480,  monthKey: 'Jul' },
+  { id: 'EXP-2037', dateISO: '2026-07-13', dateLabel: 'Jul 13, 2026', category: 'Staff Wages',             description: 'Weekend shift payroll',           vendor: 'Payroll',                amount: 1450, monthKey: 'Jul' },
+  { id: 'EXP-2038', dateISO: '2026-07-13', dateLabel: 'Jul 13, 2026', category: 'Ingredients & Supplies',  description: 'Bakery & dairy restock',          vendor: 'Village Bakery',         amount: 780,  monthKey: 'Jul' },
+  { id: 'EXP-2039', dateISO: '2026-07-14', dateLabel: 'Jul 14, 2026', category: 'Delivery & Logistics',    description: 'Rider fuel & maintenance',        vendor: 'RideWorks Garage',       amount: 310,  monthKey: 'Jul' },
+  { id: 'EXP-2040', dateISO: '2026-07-14', dateLabel: 'Jul 14, 2026', category: 'Marketing',               description: 'Social media ad spend',           vendor: 'AppBoost Media',         amount: 240,  monthKey: 'Jul' },
+  { id: 'EXP-2041', dateISO: '2026-07-15', dateLabel: 'Jul 15, 2026', category: 'Ingredients & Supplies',  description: 'Produce & meat restock',          vendor: 'GreenFields Meats',      amount: 640,  monthKey: 'Jul' },
+  { id: 'EXP-2042', dateISO: '2026-07-15', dateLabel: 'Jul 15, 2026', category: 'Staff Wages',             description: 'Day shift payroll',               vendor: 'Payroll',                amount: 420,  monthKey: 'Jul' },
+  { id: 'EXP-2043', dateISO: '2026-07-15', dateLabel: 'Jul 15, 2026', category: 'Rent & Utilities',        description: 'Electricity bill',                vendor: 'City Utilities Dept.',   amount: 130,  monthKey: 'Jul' },
+  { id: 'EXP-2044', dateISO: '2026-07-15', dateLabel: 'Jul 15, 2026', category: 'Delivery & Logistics',    description: 'Fuel & vehicle upkeep',           vendor: 'RideWorks Garage',       amount: 70,   monthKey: 'Jul' },
+];
+
+const TODAY_ISO = '2026-07-15';
+const WEEK_START_ISO = '2026-07-13'; // Mon
+const WEEK_END_ISO = '2026-07-19';   // Sun
+
+export function getExpenseRecordsForPeriod(periodId: FinancePeriodId): ExpenseRecord[] {
+  const period = financePeriods.find((p) => p.id === periodId)!;
+  let records: ExpenseRecord[];
+  if (period.kind === 'today') {
+    records = expenseRecords.filter((r) => r.dateISO === TODAY_ISO);
+  } else if (period.kind === 'week') {
+    records = expenseRecords.filter((r) => r.dateISO >= WEEK_START_ISO && r.dateISO <= WEEK_END_ISO);
+  } else {
+    records = expenseRecords.filter((r) => r.monthKey === period.monthKey);
+  }
+  return [...records].sort((a, b) => (a.dateISO < b.dateISO ? 1 : -1));
+}
+
+// --- Order & revenue analytics (top menu items) -----------------------------
+
+interface BaseItemStat {
+  name: string;
+  category: string;
+  orders: number;
+  price: number;
+}
+
+// Baseline is a full month at June 2026's volume; every other period scales
+// this baseline by its revenue ratio to June, so item-level numbers stay
+// consistent with the headline revenue figures above.
+const baseMonthlyItemStats: BaseItemStat[] = [
+  { name: 'Cheesy Boom',       category: 'Burgers',  orders: 620, price: 14.00 },
+  { name: 'Golden Fries',      category: 'Sides',    orders: 810, price: 5.00 },
+  { name: 'Midnight Bite',     category: 'Burgers',  orders: 540, price: 12.00 },
+  { name: 'Spicy Bird',        category: 'Chicken',  orders: 360, price: 13.50 },
+  { name: 'Smoky Burst',       category: 'Burgers',  orders: 300, price: 13.00 },
+  { name: 'Pepperoni Classic', category: 'Pizza',    orders: 210, price: 17.00 },
+];
+
+const JUNE_BASELINE_REVENUE = 71200;
+
+export interface MenuItemPeriodStat {
+  rank: number;
+  name: string;
+  category: string;
+  orders: number;
+  revenue: number;
+}
+
+export function getTopMenuItemsForPeriod(periodId: FinancePeriodId): MenuItemPeriodStat[] {
+  const { revenue } = getFinanceTotals(periodId);
+  const factor = revenue / JUNE_BASELINE_REVENUE;
+  return baseMonthlyItemStats
+    .map((item) => {
+      const orders = Math.max(1, Math.round(item.orders * factor));
+      return { name: item.name, category: item.category, orders, revenue: Math.round(orders * item.price) };
+    })
+    .sort((a, b) => b.orders - a.orders)
+    .map((item, i) => ({ ...item, rank: i + 1 }));
+}
+
 export const resourceLinks = [
   { title: 'Staff Onboarding Guide', type: 'PDF', size: '1.2 MB', updated: 'Jun 2, 2026' },
   { title: 'Food Safety & Hygiene Checklist', type: 'PDF', size: '480 KB', updated: 'May 18, 2026' },

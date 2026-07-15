@@ -6,7 +6,7 @@ interface StatCardProps {
   label: string;
   value: string;
   icon: LucideIcon;
-  trend?: { value: string; positive: boolean };
+  trend?: { value: string; positive: boolean; label?: string };
   accent?: 'primary' | 'secondary';
   index?: number;
   /** When true, the card wiggles and becomes clickable to open the widget picker. */
@@ -95,7 +95,7 @@ export default function StatCard({
             {trend.positive ? <ArrowUpRight size={14} /> : <ArrowDownRight size={14} />}
             {trend.value}
           </span>
-          <span className="text-muted-foreground font-normal">vs last week</span>
+          <span className="text-muted-foreground font-normal">{trend.label ?? 'vs last week'}</span>
         </div>
       )}
       {editing && !preview && (

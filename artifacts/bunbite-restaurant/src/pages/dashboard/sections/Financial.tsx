@@ -1,64 +1,132 @@
-import { AreaChart, Area, BarChart, Bar, ResponsiveContainer, XAxis, YAxis, Tooltip, CartesianGrid, Legend } from 'recharts';
+import { useMemo, useState } from 'react';
+import { AreaChart, Area, ResponsiveContainer, XAxis, YAxis, Tooltip, CartesianGrid, Legend } from 'recharts';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { CalendarDays, CalendarRange, Calendar, Receipt, PiggyBank } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table';
+import {
+  CalendarDays, CalendarRange, Calendar, Receipt, PiggyBank, Download,
+  Trophy, Crown, Medal, Award, ShoppingBag,
+} from 'lucide-react';
 import PageHeader from '../components/PageHeader';
 import StatCard from '../components/StatCard';
 import { cn } from '@/lib/utils';
-import { todaysRevenue, todaysExpenses, weeklyFinance, monthlyFinance } from '../data';
+import { useToast } from '@/hooks/use-toast';
+import {
+  financePeriods, getFinanceTotals, getFinanceTrend, getFinancePreviousMonthDelta,
+  getExpenseRecordsForPeriod, getTopMenuItemsForPeriod, type FinancePeriodId,
+} from '../data';
+
+const rankIcon = [Crown, Medal, Award];
+
+function toCsvValue(value: string | number): string {
+  const s = String(value);
+  return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+}
 
 export default function Financial() {
-  const weekRevenue = weeklyFinance.reduce((s, d) => s + d.revenue, 0);
-  const weekExpenses = weeklyFinance.reduce((s, d) => s + d.expenses, 0);
+  const { toast } = useToast();
+  const [periodId, setPeriodId] = useState<FinancePeriodId>('jul2026');
 
-  const currentMonth = monthlyFinance[monthlyFinance.length - 1];
-  const monthRevenue = currentMonth.revenue;
-  const monthExpenses = currentMonth.expenses;
+  const period = financePeriods.find((p) => p.id === periodId)!;
+  const { revenue, expenses } = getFinanceTotals(periodId);
+  const trend = getFinanceTrend(periodId);
+  const monthDelta = getFinancePreviousMonthDelta(periodId);
+  const records = useMemo(() => getExpenseRecordsForPeriod(periodId), [periodId]);
+  const topItems = useMemo(() => getTopMenuItemsForPeriod(periodId), [periodId]);
 
-  const netProfit = monthRevenue - monthExpenses;
-  const profitMargin = (netProfit / monthRevenue) * 100;
+  const netProfit = revenue - expenses;
+  const profitMargin = revenue > 0 ? (netProfit / revenue) * 100 : 0;
   const isProfitable = netProfit >= 0;
+  const recordsTotal = records.reduce((s, r) => s + r.amount, 0);
+  const topItemsOrders = topItems.reduce((s, i) => s + i.orders, 0);
+  const topItemsRevenue = topItems.reduce((s, i) => s + i.revenue, 0);
+  const bestSeller = topItems[0];
+
+  function handleExport() {
+    const rows: string[] = [];
+    rows.push(`BunBite Financial Report — ${period.label}`);
+    rows.push('');
+    rows.push('Summary');
+    rows.push(['Metric', 'Value'].join(','));
+    rows.push(['Total Revenue', revenue].join(','));
+    rows.push(['Total Expenses', expenses].join(','));
+    rows.push(['Net Profit', netProfit].join(','));
+    rows.push(['Profit Margin (%)', profitMargin.toFixed(1)].join(','));
+    rows.push('');
+    rows.push('Expense Records');
+    rows.push(['Date', 'Category', 'Description', 'Vendor', 'Amount'].map(toCsvValue).join(','));
+    for (const r of records) {
+      rows.push([r.dateLabel, r.category, r.description, r.vendor, r.amount.toFixed(2)].map(toCsvValue).join(','));
+    }
+    rows.push('');
+    rows.push('Top Menu Items');
+    rows.push(['Rank', 'Item', 'Category', 'Orders', 'Revenue'].map(toCsvValue).join(','));
+    for (const item of topItems) {
+      rows.push([item.rank, item.name, item.category, item.orders, item.revenue.toFixed(2)].map(toCsvValue).join(','));
+    }
+
+    const blob = new Blob([rows.join('\n')], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `bunbite-financial-report-${periodId}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+
+    toast({ title: 'Report exported', description: `${period.label} financial report downloaded as CSV.` });
+  }
 
   return (
     <div>
       <PageHeader
         title="Financial"
         description="A complete view of revenue, expenses, and profitability so you can monitor cash flow and make informed decisions."
+        actions={
+          <>
+            <Select value={periodId} onValueChange={(v) => setPeriodId(v as FinancePeriodId)}>
+              <SelectTrigger className="w-[210px]" data-testid="select-finance-period">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {financePeriods.map((p) => (
+                  <SelectItem key={p.id} value={p.id}>
+                    {p.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Button variant="outline" onClick={handleExport} data-testid="button-export-report">
+              <Download size={16} className="mr-1.5" /> Export Report
+            </Button>
+          </>
+        }
       />
 
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 mb-5">
         <StatCard
           index={0}
-          label="Today's Revenue"
-          value={`$${todaysRevenue.toLocaleString()}`}
-          icon={CalendarDays}
-          trend={{ value: '6.1%', positive: true }}
+          label={period.kind === 'today' ? "Today's Revenue" : period.kind === 'week' ? "This Week's Revenue" : `${period.shortLabel} Revenue`}
+          value={`$${revenue.toLocaleString()}`}
+          icon={period.kind === 'today' ? CalendarDays : period.kind === 'week' ? CalendarRange : Calendar}
+          trend={monthDelta ? { value: `${Math.abs(monthDelta.revenuePct).toFixed(1)}%`, positive: monthDelta.revenuePct >= 0, label: 'vs prior month' } : undefined}
         />
         <StatCard
           index={1}
-          label="This Week's Revenue"
-          value={`$${weekRevenue.toLocaleString()}`}
-          icon={CalendarRange}
-          accent="secondary"
-          trend={{ value: '9.4%', positive: true }}
-        />
-        <StatCard
-          index={2}
-          label="This Month's Revenue"
-          value={`$${monthRevenue.toLocaleString()}`}
-          icon={Calendar}
-          trend={{ value: '4.7%', positive: true }}
-        />
-        <StatCard
-          index={3}
-          label="This Month's Expenses"
-          value={`$${monthExpenses.toLocaleString()}`}
+          label={period.kind === 'today' ? "Today's Expenses" : period.kind === 'week' ? "This Week's Expenses" : `${period.shortLabel} Expenses`}
+          value={`$${expenses.toLocaleString()}`}
           icon={Receipt}
           accent="secondary"
-          trend={{ value: '2.3%', positive: false }}
+          trend={monthDelta ? { value: `${Math.abs(monthDelta.expensesPct).toFixed(1)}%`, positive: monthDelta.expensesPct < 0, label: 'vs prior month' } : undefined}
         />
+        <StatCard index={2} label="Net Profit" value={`${isProfitable ? '+' : '-'}$${Math.abs(netProfit).toLocaleString()}`} icon={PiggyBank} />
+        <StatCard index={3} label="Best Seller" value={bestSeller ? bestSeller.name : '—'} icon={Trophy} accent="secondary" />
       </div>
 
-      {/* Net profit highlight banner */}
+      {/* Net profit / margin banner */}
       <Card className="rounded-2xl border-card-border mb-6 overflow-hidden">
         <CardContent className="p-5 flex flex-wrap items-center gap-5">
           <div
@@ -70,7 +138,7 @@ export default function Financial() {
             <PiggyBank size={22} />
           </div>
           <div className="min-w-[180px]">
-            <p className="text-sm text-muted-foreground font-medium">Net Profit (Month to Date)</p>
+            <p className="text-sm text-muted-foreground font-medium">Net Profit ({period.shortLabel})</p>
             <p className={cn('mt-1 text-2xl md:text-3xl font-display', isProfitable ? 'text-emerald-600' : 'text-red-500')}>
               {isProfitable ? '+' : '-'}${Math.abs(netProfit).toLocaleString()}
             </p>
@@ -87,70 +155,142 @@ export default function Financial() {
               />
             </div>
             <p className="text-xs text-muted-foreground mt-2">
-              ${monthRevenue.toLocaleString()} revenue vs ${monthExpenses.toLocaleString()} expenses this month.
+              ${revenue.toLocaleString()} revenue vs ${expenses.toLocaleString()} expenses · {period.label}.
             </p>
           </div>
         </CardContent>
       </Card>
 
+      {/* Trend chart */}
+      <Card className="rounded-2xl border-card-border mb-6">
+        <CardHeader className="pb-0">
+          <CardTitle className="font-display text-base font-normal text-foreground">Revenue vs. Expense — {period.label}</CardTitle>
+        </CardHeader>
+        <CardContent className="pt-2">
+          <ResponsiveContainer width="100%" height={300}>
+            <AreaChart data={trend} margin={{ left: 0, right: 10, top: 10 }}>
+              <defs>
+                <linearGradient id="finRevFill" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor="hsl(var(--primary))" stopOpacity={0.35} />
+                  <stop offset="95%" stopColor="hsl(var(--primary))" stopOpacity={0} />
+                </linearGradient>
+                <linearGradient id="finExpFill" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor="hsl(var(--secondary))" stopOpacity={0.45} />
+                  <stop offset="95%" stopColor="hsl(var(--secondary))" stopOpacity={0} />
+                </linearGradient>
+              </defs>
+              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border) / 0.15)" />
+              <XAxis dataKey="label" tickLine={false} axisLine={false} fontSize={12} />
+              <YAxis tickLine={false} axisLine={false} fontSize={12} width={56} tickFormatter={(v: number) => `$${v}`} />
+              <Tooltip
+                contentStyle={{ borderRadius: 12, border: '1px solid hsl(var(--card-border))', fontSize: 12 }}
+                formatter={(v: number, name: string) => [`$${v.toLocaleString()}`, name]}
+              />
+              <Legend wrapperStyle={{ fontSize: 12 }} />
+              <Area type="monotone" dataKey="revenue" name="Revenue" stroke="hsl(var(--primary))" strokeWidth={2.5} fill="url(#finRevFill)" />
+              <Area type="monotone" dataKey="expenses" name="Expenses" stroke="hsl(var(--secondary))" strokeWidth={2.5} fill="url(#finExpFill)" />
+            </AreaChart>
+          </ResponsiveContainer>
+        </CardContent>
+      </Card>
+
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-5">
+        {/* Expense records */}
         <Card className="rounded-2xl border-card-border">
-          <CardHeader className="pb-0">
-            <CardTitle className="font-display text-base font-normal text-foreground">Weekly Revenue vs. Expense</CardTitle>
+          <CardHeader className="pb-2 flex flex-row items-center justify-between">
+            <CardTitle className="font-display text-base font-normal text-foreground">Expense Records</CardTitle>
+            <span className="text-xs text-muted-foreground">{records.length} entries · ${recordsTotal.toLocaleString()}</span>
           </CardHeader>
-          <CardContent className="pt-2">
-            <ResponsiveContainer width="100%" height={280}>
-              <AreaChart data={weeklyFinance} margin={{ left: 0, right: 10, top: 10 }}>
-                <defs>
-                  <linearGradient id="finRevFill" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="hsl(var(--primary))" stopOpacity={0.35} />
-                    <stop offset="95%" stopColor="hsl(var(--primary))" stopOpacity={0} />
-                  </linearGradient>
-                  <linearGradient id="finExpFill" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="hsl(var(--secondary))" stopOpacity={0.45} />
-                    <stop offset="95%" stopColor="hsl(var(--secondary))" stopOpacity={0} />
-                  </linearGradient>
-                </defs>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border) / 0.15)" />
-                <XAxis dataKey="day" tickLine={false} axisLine={false} fontSize={12} />
-                <YAxis tickLine={false} axisLine={false} fontSize={12} width={56} tickFormatter={(v: number) => `${v}`} />
-                <Tooltip
-                  contentStyle={{ borderRadius: 12, border: '1px solid hsl(var(--card-border))', fontSize: 12 }}
-                  formatter={(v: number, name: string) => [`$${v.toLocaleString()}`, name]}
-                />
-                <Legend wrapperStyle={{ fontSize: 12 }} />
-                <Area type="monotone" dataKey="revenue" name="Revenue" stroke="hsl(var(--primary))" strokeWidth={2.5} fill="url(#finRevFill)" />
-                <Area type="monotone" dataKey="expenses" name="Expenses" stroke="hsl(var(--secondary))" strokeWidth={2.5} fill="url(#finExpFill)" />
-              </AreaChart>
-            </ResponsiveContainer>
+          <CardContent className="pt-0">
+            <div className="max-h-[360px] overflow-auto -mx-1 px-1">
+              <Table className="min-w-[560px]">
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="whitespace-nowrap">Date</TableHead>
+                    <TableHead className="whitespace-nowrap">Category</TableHead>
+                    <TableHead>Description</TableHead>
+                    <TableHead className="text-right whitespace-nowrap">Amount</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {records.length === 0 && (
+                    <TableRow>
+                      <TableCell colSpan={4} className="text-center text-muted-foreground py-8">
+                        No expense records for this period.
+                      </TableCell>
+                    </TableRow>
+                  )}
+                  {records.map((r) => (
+                    <TableRow key={r.id} data-testid={`row-expense-${r.id}`}>
+                      <TableCell className="whitespace-nowrap text-xs text-muted-foreground">{r.dateLabel}</TableCell>
+                      <TableCell>
+                        <Badge variant="secondary" className="whitespace-nowrap font-normal text-[11px]">{r.category}</Badge>
+                      </TableCell>
+                      <TableCell>
+                        <p className="font-medium text-sm text-foreground whitespace-nowrap">{r.description}</p>
+                        <p className="text-xs text-muted-foreground whitespace-nowrap">{r.vendor}</p>
+                      </TableCell>
+                      <TableCell className="text-right font-semibold text-foreground whitespace-nowrap">
+                        ${r.amount.toLocaleString()}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
           </CardContent>
         </Card>
 
+        {/* Order & revenue analytics */}
         <Card className="rounded-2xl border-card-border">
-          <CardHeader className="pb-0">
-            <CardTitle className="font-display text-base font-normal text-foreground">Monthly Revenue vs. Expense</CardTitle>
+          <CardHeader className="pb-2 flex flex-row items-center justify-between">
+            <CardTitle className="font-display text-base font-normal text-foreground">Order &amp; Revenue Analytics</CardTitle>
+            <span className="text-xs text-muted-foreground flex items-center gap-1">
+              <ShoppingBag size={13} /> {topItemsOrders.toLocaleString()} orders · ${topItemsRevenue.toLocaleString()}
+            </span>
           </CardHeader>
-          <CardContent className="pt-2">
-            <ResponsiveContainer width="100%" height={280}>
-              <BarChart data={monthlyFinance} margin={{ left: 0, right: 10, top: 10 }}>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border) / 0.15)" />
-                <XAxis dataKey="month" tickLine={false} axisLine={false} fontSize={12} />
-                <YAxis
-                  tickLine={false}
-                  axisLine={false}
-                  fontSize={12}
-                  width={56}
-                  tickFormatter={(v: number) => `${(v / 1000).toFixed(0)}k`}
-                />
-                <Tooltip
-                  contentStyle={{ borderRadius: 12, border: '1px solid hsl(var(--card-border))', fontSize: 12 }}
-                  formatter={(v: number, name: string) => [`$${v.toLocaleString()}`, name]}
-                />
-                <Legend wrapperStyle={{ fontSize: 12 }} />
-                <Bar dataKey="revenue" name="Revenue" radius={[6, 6, 0, 0]} fill="hsl(var(--primary))" barSize={16} />
-                <Bar dataKey="expenses" name="Expenses" radius={[6, 6, 0, 0]} fill="hsl(var(--secondary))" barSize={16} />
-              </BarChart>
-            </ResponsiveContainer>
+          <CardContent className="pt-0">
+            <div className="max-h-[360px] overflow-auto -mx-1 px-1">
+              <Table className="min-w-[440px]">
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="w-10">#</TableHead>
+                    <TableHead>Item</TableHead>
+                    <TableHead className="text-right whitespace-nowrap">Orders</TableHead>
+                    <TableHead className="text-right whitespace-nowrap">Revenue</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {topItems.map((item) => {
+                    const Icon = rankIcon[item.rank - 1];
+                    return (
+                      <TableRow key={item.name} data-testid={`row-topitem-${item.name.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`}>
+                        <TableCell>
+                          {Icon ? (
+                            <Icon
+                              size={16}
+                              className={cn(
+                                item.rank === 1 ? 'text-amber-500' : item.rank === 2 ? 'text-slate-400' : 'text-orange-600',
+                              )}
+                            />
+                          ) : (
+                            <span className="text-xs text-muted-foreground pl-1">{item.rank}</span>
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          <p className="font-medium text-sm text-foreground">{item.name}</p>
+                          <p className="text-xs text-muted-foreground">{item.category}</p>
+                        </TableCell>
+                        <TableCell className="text-right text-foreground whitespace-nowrap">{item.orders.toLocaleString()}</TableCell>
+                        <TableCell className="text-right font-semibold text-foreground whitespace-nowrap">
+                          ${item.revenue.toLocaleString()}
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            </div>
           </CardContent>
         </Card>
       </div>
