@@ -19,8 +19,14 @@ import {
   TrendingUp,
   Repeat,
   Receipt,
+  PiggyBank,
+  Wallet,
+  Trophy,
+  Undo2,
+  Bike,
+  ThumbsUp,
 } from 'lucide-react';
-import { menuItems, inventoryItems, customers, staff, promotions, reviews, revenueSeries } from './data';
+import { menuItems, inventoryItems, customers, staff, promotions, reviews, revenueSeries, payments, todaysRevenue, todaysExpenses } from './data';
 
 export interface WidgetDef {
   id: string;
@@ -44,6 +50,12 @@ export function buildWidgetCatalog(ctx: WidgetContext): WidgetDef[] {
   const onShiftCount = staff.filter((s) => s.status === 'On Shift').length;
   const activePromoCount = promotions.filter((p) => p.status === 'Active').length;
   const pendingReviewCount = reviews.filter((r) => !r.replied).length;
+  const bestSeller = [...menuItems].sort((a, b) => b.sold - a.sold)[0];
+  const refundedCount = payments.filter((p) => p.status === 'Refunded').length;
+  const paidToday = payments.filter((p) => p.status === 'Paid').reduce((sum, p) => sum + p.amount, 0);
+  const deliveryStaffCount = staff.filter((s) => s.role === 'Delivery Rider').length;
+  const fiveStarCount = reviews.filter((r) => r.rating === 5).length;
+  const todaysNetProfit = todaysRevenue - todaysExpenses;
 
   return [
     {
@@ -167,6 +179,65 @@ export function buildWidgetCatalog(ctx: WidgetContext): WidgetDef[] {
       value: '1,234',
       trend: { value: '8.2%', positive: true },
       description: 'All orders placed in the last week.',
+    },
+    {
+      id: 'todays-revenue',
+      label: "Today's Revenue",
+      icon: DollarSign,
+      accent: 'primary',
+      value: `${todaysRevenue.toLocaleString()}`,
+      trend: { value: '5.3%', positive: true },
+      description: 'Total sales recorded so far today.',
+    },
+    {
+      id: 'todays-net-profit',
+      label: "Today's Net Profit",
+      icon: PiggyBank,
+      accent: todaysNetProfit >= 0 ? 'primary' : 'secondary',
+      value: `${todaysNetProfit >= 0 ? '+' : '-'}${Math.abs(todaysNetProfit).toLocaleString()}`,
+      trend: { value: `${((todaysNetProfit / todaysRevenue) * 100).toFixed(0)}% margin`, positive: todaysNetProfit >= 0 },
+      description: "Today's revenue minus today's expenses.",
+    },
+    {
+      id: 'best-seller',
+      label: 'Best Seller',
+      icon: Trophy,
+      accent: 'secondary',
+      value: bestSeller.name,
+      description: `${bestSeller.sold.toLocaleString()} sold all-time — your top menu item.`,
+    },
+    {
+      id: 'payments-collected',
+      label: 'Payments Collected',
+      icon: Wallet,
+      accent: 'primary',
+      value: `${paidToday.toFixed(2)}`,
+      description: 'Total of all successfully paid transactions.',
+    },
+    {
+      id: 'refunded-transactions',
+      label: 'Refunded Transactions',
+      icon: Undo2,
+      accent: 'secondary',
+      value: String(refundedCount),
+      trend: { value: refundedCount > 0 ? 'Review needed' : 'All clear', positive: refundedCount === 0 },
+      description: 'Payments that were refunded to customers.',
+    },
+    {
+      id: 'delivery-riders',
+      label: 'Delivery Riders',
+      icon: Bike,
+      accent: 'primary',
+      value: String(deliveryStaffCount),
+      description: 'Staff assigned to delivery duty.',
+    },
+    {
+      id: 'five-star-reviews',
+      label: '5-Star Reviews',
+      icon: ThumbsUp,
+      accent: 'secondary',
+      value: `${fiveStarCount} / ${reviews.length}`,
+      description: 'Share of reviews rated the full 5 stars.',
     },
   ];
 }
