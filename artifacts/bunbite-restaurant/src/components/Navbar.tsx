@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { Link } from 'wouter';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   ClipboardList,
@@ -532,13 +533,13 @@ export default function Navbar() {
 
         {/* Manage — desktop only, sits immediately left of the profile icon */}
         {user && !mobile && (
-          <button
-            onClick={() => scrollTo('menu')}
+          <Link
+            href="/dashboard"
             className="flex items-center justify-center h-10 px-4 rounded-full bg-white/15 hover:bg-white/25 text-white font-semibold text-sm transition-colors"
             data-testid="button-nav-manage"
           >
             Manage
-          </button>
+          </Link>
         )}
 
         {/* Profile avatar — desktop only */}
