@@ -54,34 +54,37 @@ export default function DashboardHome() {
   const [layout, setLayout] = useState<string[]>(loadLayout);
   const [editMode, setEditMode] = useState(false);
   const [pickerSlot, setPickerSlot] = useState<number | null>(null);
-  const [pendingChange, setPendingChange] = useState<{ slot: number; widgetId: string } | null>(null);
+  const [pendingChanges, setPendingChanges] = useState<Record<number, string>>({});
   const [confirmOpen, setConfirmOpen] = useState(false);
 
-  const displayLayout = layout.map((id, i) => (pendingChange && pendingChange.slot === i ? pendingChange.widgetId : id));
+  const hasPendingChanges = Object.keys(pendingChanges).length > 0;
+  const displayLayout = layout.map((id, i) => (i in pendingChanges ? pendingChanges[i] : id));
 
   const toggleEditMode = () => {
-    if (editMode && pendingChange) {
-      setPendingChange(null);
+    if (editMode && hasPendingChanges) {
+      setPendingChanges({});
     }
     setEditMode((v) => !v);
   };
 
   const handleSelectWidget = (widgetId: string) => {
     if (pickerSlot === null) return;
-    setPendingChange({ slot: pickerSlot, widgetId });
+    setPendingChanges((prev) => ({ ...prev, [pickerSlot]: widgetId }));
     setPickerSlot(null);
     toast({ title: 'Preview updated', description: "Click Save Changes to make it permanent." });
   };
 
-  const discardPreview = () => setPendingChange(null);
+  const discardPreview = () => setPendingChanges({});
 
   const confirmSave = () => {
-    if (!pendingChange) return;
+    if (!hasPendingChanges) return;
     const next = [...layout];
-    next[pendingChange.slot] = pendingChange.widgetId;
+    for (const [slot, widgetId] of Object.entries(pendingChanges)) {
+      next[Number(slot)] = widgetId;
+    }
     setLayout(next);
     localStorage.setItem(LAYOUT_STORAGE_KEY, JSON.stringify(next));
-    setPendingChange(null);
+    setPendingChanges({});
     setConfirmOpen(false);
     toast({ title: 'Dashboard updated', description: 'Your widget layout has been saved.' });
   };
@@ -92,7 +95,7 @@ export default function DashboardHome() {
         <PageHeader title="Welcome back 👋" description="Here's how BunBite is performing today." />
         <div className="flex items-center gap-2 shrink-0">
           <AnimatePresence>
-            {pendingChange && (
+            {hasPendingChanges && (
               <motion.div
                 initial={{ opacity: 0, x: 8 }}
                 animate={{ opacity: 1, x: 0 }}
@@ -108,15 +111,17 @@ export default function DashboardHome() {
               </motion.div>
             )}
           </AnimatePresence>
-          <Button
-            variant={editMode ? 'secondary' : 'outline'}
-            size="sm"
-            onClick={toggleEditMode}
-            data-testid="button-edit-widgets"
-          >
-            {editMode ? <Check size={14} className="mr-1" /> : <Pencil size={14} className="mr-1" />}
-            {editMode ? 'Done' : 'Edit'}
-          </Button>
+          {!hasPendingChanges && (
+            <Button
+              variant={editMode ? 'secondary' : 'outline'}
+              size="sm"
+              onClick={toggleEditMode}
+              data-testid="button-edit-widgets"
+            >
+              {editMode ? <Check size={14} className="mr-1" /> : <Pencil size={14} className="mr-1" />}
+              {editMode ? 'Done' : 'Edit'}
+            </Button>
+          )}
         </div>
       </div>
       {editMode && (
@@ -127,7 +132,7 @@ export default function DashboardHome() {
         {displayLayout.map((widgetId, i) => {
           const w = catalogById.get(widgetId);
           if (!w) return null;
-          const isPreview = pendingChange?.slot === i;
+          const isPreview = i in pendingChanges;
           return (
             <StatCard
               key={`${i}-${widgetId}`}
@@ -261,7 +266,7 @@ export default function DashboardHome() {
           <AlertDialogHeader>
             <AlertDialogTitle>Are you sure you want to save these changes?</AlertDialogTitle>
             <AlertDialogDescription>
-              This will replace the current widget with your selected preview. You can always change it again later.
+              This will replace {Object.keys(pendingChanges).length > 1 ? 'these widgets' : 'this widget'} with your selected preview{Object.keys(pendingChanges).length > 1 ? 's' : ''}. You can always change {Object.keys(pendingChanges).length > 1 ? 'them' : 'it'} again later.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
