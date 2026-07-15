@@ -1,41 +1,51 @@
 import { useState } from 'react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
-import { CheckCircle2, Search } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Search, Clock, Loader2, CheckCircle2, XCircle } from 'lucide-react';
 import PageHeader from '../components/PageHeader';
 import StatCard from '../components/StatCard';
-import { ShoppingCart, Clock, DollarSign } from 'lucide-react';
-import { useOrders } from '@/context/OrdersContext';
+import { useOrders, type OrderStatus } from '@/context/OrdersContext';
 import { useToast } from '@/hooks/use-toast';
 
+const STATUS_META: Record<OrderStatus, { label: string; badgeClass: string }> = {
+  pending:     { label: 'Pending',     badgeClass: 'bg-amber-50 text-amber-700 border-amber-200'   },
+  in_progress: { label: 'In Progress', badgeClass: 'bg-blue-50 text-blue-700 border-blue-200'      },
+  completed:   { label: 'Completed',   badgeClass: 'bg-green-50 text-green-700 border-green-200'   },
+  cancelled:   { label: 'Cancelled',   badgeClass: 'bg-red-50 text-red-700 border-red-200'         },
+};
+
+const STATUS_OPTIONS: OrderStatus[] = ['pending', 'in_progress', 'completed', 'cancelled'];
+
 export default function Orders() {
-  const { unpaidOrders, confirmOrders } = useOrders();
+  const { unpaidOrders, updateOrderStatus } = useOrders();
   const { toast } = useToast();
   const [query, setQuery] = useState('');
 
   const filtered = unpaidOrders.filter((o) =>
     (o.id + o.items).toLowerCase().includes(query.toLowerCase()),
   );
-  const totalValue = unpaidOrders.reduce((s, o) => s + o.total, 0);
 
-  const markPaid = (id: string) => {
+  const countByStatus = (status: OrderStatus) => unpaidOrders.filter((o) => o.status === status).length;
+
+  const handleStatusChange = (id: string, status: OrderStatus) => {
     const order = unpaidOrders.find((o) => o.id === id);
     if (!order) return;
-    confirmOrders([order], 'Front Desk');
-    toast({ title: 'Order marked as paid', description: `${order.id} has been moved to the kitchen queue.` });
+    updateOrderStatus(id, status);
+    toast({ title: 'Order status updated', description: `${order.id} is now ${STATUS_META[status].label}.` });
   };
 
   return (
     <div>
       <PageHeader title="Orders" description="Track and manage every order awaiting payment or preparation." />
 
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
-        <StatCard index={0} label="Open Orders" value={String(unpaidOrders.length)} icon={ShoppingCart} />
-        <StatCard index={1} label="Value Awaiting Payment" value={`$${totalValue.toFixed(2)}`} icon={DollarSign} accent="secondary" />
-        <StatCard index={2} label="Avg. Wait Time" value="14 min" icon={Clock} />
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+        <StatCard index={0} label="Active Orders" value={String(countByStatus('pending'))} icon={Clock} />
+        <StatCard index={1} label="In Progress Orders" value={String(countByStatus('in_progress'))} icon={Loader2} accent="secondary" />
+        <StatCard index={2} label="Completed Orders" value={String(countByStatus('completed'))} icon={CheckCircle2} />
+        <StatCard index={3} label="Cancelled Orders" value={String(countByStatus('cancelled'))} icon={XCircle} accent="secondary" />
       </div>
 
       <Card className="rounded-2xl border-card-border">
@@ -73,12 +83,26 @@ export default function Orders() {
                     <TableCell>${o.total.toFixed(2)}</TableCell>
                     <TableCell className="text-muted-foreground">{o.time}</TableCell>
                     <TableCell>
-                      <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200">Awaiting Payment</Badge>
+                      <Badge variant="outline" className={STATUS_META[o.status].badgeClass}>
+                        {STATUS_META[o.status].label}
+                      </Badge>
                     </TableCell>
                     <TableCell className="text-right">
-                      <Button size="sm" variant="outline" onClick={() => markPaid(o.id)} data-testid={`button-mark-paid-${o.id}`}>
-                        <CheckCircle2 size={14} className="mr-1.5" /> Mark Paid
-                      </Button>
+                      <Select
+                        value={o.status}
+                        onValueChange={(value) => handleStatusChange(o.id, value as OrderStatus)}
+                      >
+                        <SelectTrigger className="w-[150px] ml-auto" data-testid={`select-status-${o.id}`}>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {STATUS_OPTIONS.map((status) => (
+                            <SelectItem key={status} value={status} data-testid={`option-status-${status}-${o.id}`}>
+                              {STATUS_META[status].label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
                     </TableCell>
                   </TableRow>
                 ))}

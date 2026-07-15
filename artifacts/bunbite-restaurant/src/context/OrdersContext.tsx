@@ -19,6 +19,9 @@ export interface FavoriteItem {
   desc?: string;
 }
 
+/** Kitchen/staff progress status for an order, tracked in the management dashboard. */
+export type OrderStatus = 'pending' | 'in_progress' | 'completed' | 'cancelled';
+
 export interface UnpaidOrder {
   id: string;
   /** Product name — used to group repeat orders of the same item. */
@@ -30,6 +33,8 @@ export interface UnpaidOrder {
   items: string;
   total: number;
   time: string;
+  /** Staff-managed progress status — defaults to 'pending' for new orders. */
+  status: OrderStatus;
 }
 
 export interface AppNotification {
@@ -50,6 +55,8 @@ interface OrdersContextValue {
   buyItem: (item: BuyItem, displayName: string) => void;
   /** Removes the given unpaid orders and fires one payment-confirmed notification per order. */
   confirmOrders: (orders: UnpaidOrder[], displayName: string) => void;
+  /** Updates the staff-managed progress status of an order (dashboard Orders section). */
+  updateOrderStatus: (id: string, status: OrderStatus) => void;
   /** Item the user tried to buy before logging in; cleared after it's added. */
   pendingBuy: BuyItem | null;
   setPendingBuy: (item: BuyItem | null) => void;
@@ -84,8 +91,8 @@ const INITIAL_FAVORITES: FavoriteItem[] = [
 ];
 
 const INITIAL_UNPAID: UnpaidOrder[] = [
-  { id: '#BB-4655', name: 'Cheesy Boom',   price: 14.0, qty: 1, items: '1x Cheesy Boom', total: 14.0, time: '2 hours ago' },
-  { id: '#BB-4600', name: 'Smoky Burst',   price: 13.0, qty: 2, items: '2x Smoky Burst', total: 26.0, time: 'Yesterday'  },
+  { id: '#BB-4655', name: 'Cheesy Boom',   price: 14.0, qty: 1, items: '1x Cheesy Boom', total: 14.0, time: '2 hours ago', status: 'pending'     },
+  { id: '#BB-4600', name: 'Smoky Burst',   price: 13.0, qty: 2, items: '2x Smoky Burst', total: 26.0, time: 'Yesterday',  status: 'in_progress'  },
 ];
 
 const INITIAL_NOTIFICATIONS: AppNotification[] = [
@@ -158,7 +165,7 @@ export function OrdersProvider({ children }: { children: ReactNode }) {
     counterRef.current++;
     const id = `#BB-${counterRef.current}`;
     setUnpaidOrders((prev) => [
-      { id, name: item.name, price: item.price, qty: 1, items: `1x ${item.name}`, total: item.price, time: 'Just now' },
+      { id, name: item.name, price: item.price, qty: 1, items: `1x ${item.name}`, total: item.price, time: 'Just now', status: 'pending' },
       ...prev,
     ]);
     setBadgePulse((n) => n + 1);
@@ -180,6 +187,11 @@ export function OrdersProvider({ children }: { children: ReactNode }) {
 
   const removeUnpaidOrder = useCallback((id: string) =>
     setUnpaidOrders((prev) => prev.filter((o) => o.id !== id)), []);
+
+  /** Updates the staff-managed progress status of an order (dashboard Orders section). */
+  const updateOrderStatus = useCallback((id: string, status: OrderStatus) => {
+    setUnpaidOrders((prev) => prev.map((o) => (o.id === id ? { ...o, status } : o)));
+  }, []);
 
   /** Removes the given unpaid orders and fires one payment-confirmed notification per order. */
   const confirmOrders = useCallback((orders: UnpaidOrder[], displayName: string) => {
@@ -232,7 +244,7 @@ export function OrdersProvider({ children }: { children: ReactNode }) {
 
   return (
     <OrdersContext.Provider value={{
-      unpaidOrders, addUnpaidOrder, removeUnpaidOrder, buyItem, confirmOrders,
+      unpaidOrders, addUnpaidOrder, removeUnpaidOrder, buyItem, confirmOrders, updateOrderStatus,
       favorites, toggleFavorite, isFavorite,
       preOrders, addPreOrder, removePreOrder,
       pendingBuy, setPendingBuy,
