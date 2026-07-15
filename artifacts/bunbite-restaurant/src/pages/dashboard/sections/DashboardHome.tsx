@@ -1,27 +1,148 @@
-import { ShoppingCart, CalendarCheck, DollarSign, Star } from 'lucide-react';
+import { useMemo, useState } from 'react';
+import { Pencil, Check, X as XIcon, Save } from 'lucide-react';
 import { AreaChart, Area, BarChart, Bar, ResponsiveContainer, XAxis, YAxis, Tooltip, CartesianGrid, PieChart, Pie, Cell } from 'recharts';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import {
+  AlertDialog,
+  AlertDialogContent,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogAction,
+  AlertDialogCancel,
+} from '@/components/ui/alert-dialog';
 import PageHeader from '../components/PageHeader';
 import StatCard from '../components/StatCard';
+import WidgetPicker from '../components/WidgetPicker';
 import { useOrders } from '@/context/OrdersContext';
 import { revenueSeries, categorySales, menuItems } from '../data';
+import { buildWidgetCatalog } from '../widgetCatalog';
+import { useToast } from '@/hooks/use-toast';
+
+const LAYOUT_STORAGE_KEY = 'bunbite-dashboard-widget-layout';
+const DEFAULT_LAYOUT = ['weekly-revenue', 'active-orders', 'upcoming-reservations', 'avg-rating'];
+
+function loadLayout(): string[] {
+  try {
+    const raw = localStorage.getItem(LAYOUT_STORAGE_KEY);
+    if (!raw) return DEFAULT_LAYOUT;
+    const parsed = JSON.parse(raw);
+    if (Array.isArray(parsed) && parsed.length === 4 && parsed.every((id) => typeof id === 'string')) {
+      return parsed;
+    }
+  } catch {
+    // fall through to default
+  }
+  return DEFAULT_LAYOUT;
+}
 
 export default function DashboardHome() {
   const { unpaidOrders, preOrders } = useOrders();
-  const weeklyRevenue = revenueSeries.reduce((sum, d) => sum + d.revenue, 0);
+  const { toast } = useToast();
   const topItems = [...menuItems].sort((a, b) => b.sold - a.sold).slice(0, 5);
+
+  const catalog = useMemo(
+    () => buildWidgetCatalog({ unpaidOrdersCount: unpaidOrders.length, preOrdersCount: preOrders.length }),
+    [unpaidOrders.length, preOrders.length],
+  );
+  const catalogById = useMemo(() => new Map(catalog.map((w) => [w.id, w])), [catalog]);
+
+  const [layout, setLayout] = useState<string[]>(loadLayout);
+  const [editMode, setEditMode] = useState(false);
+  const [pickerSlot, setPickerSlot] = useState<number | null>(null);
+  const [pendingChange, setPendingChange] = useState<{ slot: number; widgetId: string } | null>(null);
+  const [confirmOpen, setConfirmOpen] = useState(false);
+
+  const displayLayout = layout.map((id, i) => (pendingChange && pendingChange.slot === i ? pendingChange.widgetId : id));
+
+  const toggleEditMode = () => {
+    if (editMode && pendingChange) {
+      setPendingChange(null);
+    }
+    setEditMode((v) => !v);
+  };
+
+  const handleSelectWidget = (widgetId: string) => {
+    if (pickerSlot === null) return;
+    setPendingChange({ slot: pickerSlot, widgetId });
+    setPickerSlot(null);
+    toast({ title: 'Preview updated', description: "Click Save Changes to make it permanent." });
+  };
+
+  const discardPreview = () => setPendingChange(null);
+
+  const confirmSave = () => {
+    if (!pendingChange) return;
+    const next = [...layout];
+    next[pendingChange.slot] = pendingChange.widgetId;
+    setLayout(next);
+    localStorage.setItem(LAYOUT_STORAGE_KEY, JSON.stringify(next));
+    setPendingChange(null);
+    setConfirmOpen(false);
+    toast({ title: 'Dashboard updated', description: 'Your widget layout has been saved.' });
+  };
 
   return (
     <div>
-      <PageHeader title="Welcome back 👋" description="Here's how BunBite is performing today." />
+      <div className="flex flex-wrap items-start justify-between gap-3 mb-1">
+        <PageHeader title="Welcome back 👋" description="Here's how BunBite is performing today." />
+        <div className="flex items-center gap-2 shrink-0">
+          <AnimatePresence>
+            {pendingChange && (
+              <motion.div
+                initial={{ opacity: 0, x: 8 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: 8 }}
+                className="flex items-center gap-2"
+              >
+                <Button variant="outline" size="sm" onClick={discardPreview} data-testid="button-discard-widget">
+                  <XIcon size={14} className="mr-1" /> Discard
+                </Button>
+                <Button size="sm" onClick={() => setConfirmOpen(true)} data-testid="button-save-widget">
+                  <Save size={14} className="mr-1" /> Save Changes
+                </Button>
+              </motion.div>
+            )}
+          </AnimatePresence>
+          <Button
+            variant={editMode ? 'secondary' : 'outline'}
+            size="sm"
+            onClick={toggleEditMode}
+            data-testid="button-edit-widgets"
+          >
+            {editMode ? <Check size={14} className="mr-1" /> : <Pencil size={14} className="mr-1" />}
+            {editMode ? 'Done' : 'Edit'}
+          </Button>
+        </div>
+      </div>
+      {editMode && (
+        <p className="text-xs text-muted-foreground mb-4">Tap any widget below to swap it for something else.</p>
+      )}
 
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 mb-6">
-        <StatCard index={0} label="Weekly Revenue" value={`$${weeklyRevenue.toLocaleString()}`} icon={DollarSign} trend={{ value: '12.4%', positive: true }} />
-        <StatCard index={1} label="Active Orders" value={String(unpaidOrders.length)} icon={ShoppingCart} accent="secondary" trend={{ value: '3.1%', positive: true }} />
-        <StatCard index={2} label="Upcoming Reservations" value={String(preOrders.length)} icon={CalendarCheck} trend={{ value: '2 new', positive: true }} />
-        <StatCard index={3} label="Avg. Rating" value="4.7 / 5" icon={Star} accent="secondary" trend={{ value: '0.2', positive: true }} />
+        {displayLayout.map((widgetId, i) => {
+          const w = catalogById.get(widgetId);
+          if (!w) return null;
+          const isPreview = pendingChange?.slot === i;
+          return (
+            <StatCard
+              key={`${i}-${widgetId}`}
+              index={i}
+              label={w.label}
+              value={w.value}
+              icon={w.icon}
+              accent={w.accent}
+              trend={w.trend}
+              editing={editMode}
+              preview={isPreview}
+              onClick={() => setPickerSlot(i)}
+            />
+          );
+        })}
       </div>
 
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-5 mb-6">
@@ -126,6 +247,29 @@ export default function DashboardHome() {
           </CardContent>
         </Card>
       </div>
+
+      <WidgetPicker
+        open={pickerSlot !== null}
+        onOpenChange={(open) => !open && setPickerSlot(null)}
+        widgets={catalog}
+        currentWidgetId={pickerSlot !== null ? displayLayout[pickerSlot] : undefined}
+        onSelect={handleSelectWidget}
+      />
+
+      <AlertDialog open={confirmOpen} onOpenChange={setConfirmOpen}>
+        <AlertDialogContent data-testid="dialog-confirm-save">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you sure you want to save these changes?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will replace the current widget with your selected preview. You can always change it again later.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel data-testid="button-cancel-save">Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmSave} data-testid="button-confirm-save">Save Changes</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
