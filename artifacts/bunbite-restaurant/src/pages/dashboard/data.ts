@@ -179,6 +179,28 @@ export const categorySales = [
   { name: 'Desserts', value: 720,  color: '#D9C27E' },
 ];
 
+export const todaysRevenue = 2140;
+export const todaysExpenses = 1260;
+
+export const weeklyFinance = [
+  { day: 'Mon', revenue: 1840, expenses: 1120 },
+  { day: 'Tue', revenue: 2010, expenses: 1190 },
+  { day: 'Wed', revenue: 1720, expenses: 1080 },
+  { day: 'Thu', revenue: 2380, expenses: 1340 },
+  { day: 'Fri', revenue: 3120, expenses: 1680 },
+  { day: 'Sat', revenue: 3640, expenses: 1920 },
+  { day: 'Sun', revenue: 2960, expenses: 1610 },
+];
+
+export const monthlyFinance = [
+  { month: 'Feb', revenue: 58200, expenses: 34900 },
+  { month: 'Mar', revenue: 62400, expenses: 37100 },
+  { month: 'Apr', revenue: 60800, expenses: 36200 },
+  { month: 'May', revenue: 65900, expenses: 38700 },
+  { month: 'Jun', revenue: 71200, expenses: 41500 },
+  { month: 'Jul', revenue: 43850, expenses: 25600 },
+];
+
 export const resourceLinks = [
   { title: 'Staff Onboarding Guide', type: 'PDF', size: '1.2 MB', updated: 'Jun 2, 2026' },
   { title: 'Food Safety & Hygiene Checklist', type: 'PDF', size: '480 KB', updated: 'May 18, 2026' },

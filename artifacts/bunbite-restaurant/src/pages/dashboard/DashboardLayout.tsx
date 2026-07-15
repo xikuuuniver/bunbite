@@ -8,7 +8,7 @@ import Topbar from './components/Topbar';
 import { dashboardNav, navPath } from './nav';
 
 import DashboardHome from './sections/DashboardHome';
-import Themes from './sections/Themes';
+import Financial from './sections/Financial';
 import Orders from './sections/Orders';
 import Reservations from './sections/Reservations';
 import MenuManagement from './sections/MenuManagement';
@@ -25,7 +25,7 @@ import SettingsSection from './sections/SettingsSection';
 
 const sectionComponents: Record<string, React.ComponentType> = {
   '': DashboardHome,
-  themes: Themes,
+  financial: Financial,
   orders: Orders,
   reservations: Reservations,
   menu: MenuManagement,

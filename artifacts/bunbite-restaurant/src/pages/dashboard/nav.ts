@@ -1,5 +1,5 @@
 import {
-  LayoutDashboard, Palette, ShoppingCart, CalendarCheck, UtensilsCrossed,
+  LayoutDashboard, Wallet, ShoppingCart, CalendarCheck, UtensilsCrossed,
   Boxes, FolderOpen, Users, CreditCard, UserCog, BadgePercent,
   BarChart3, Bell, MessageSquareHeart, Settings, type LucideIcon,
 } from 'lucide-react';
@@ -11,8 +11,8 @@ export interface DashboardNavItem {
 }
 
 export const dashboardNav: DashboardNavItem[] = [
-  { slug: '',              label: 'Dashboard',           icon: LayoutDashboard },
-  { slug: 'themes',        label: 'Themes',               icon: Palette },
+  { slug: '',              label: 'Overview',             icon: LayoutDashboard },
+  { slug: 'financial',     label: 'Financial',            icon: Wallet },
   { slug: 'orders',        label: 'Orders',                icon: ShoppingCart },
   { slug: 'reservations',  label: 'Reservations',          icon: CalendarCheck },
   { slug: 'menu',          label: 'Menu Management',       icon: UtensilsCrossed },
