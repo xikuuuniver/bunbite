@@ -4,7 +4,7 @@ import { AuthProvider } from '@/context/AuthContext';
 import { OrdersProvider } from '@/context/OrdersContext';
 import { MenuProvider } from '@/context/MenuContext';
 import { Route, Switch, Router as WouterRouter } from 'wouter';
-import BugReporter from '@/components/BugReporter';
+import ReleaseNotes from '@/components/ReleaseNotes';
 import Navbar from '@/components/Navbar';
 import HeroSection from '@/components/HeroSection';
 import MarqueeTicker from '@/components/MarqueeTicker';
@@ -59,7 +59,7 @@ function App() {
               <Router />
             </WouterRouter>
             <Toaster />
-            <BugReporter />
+            <ReleaseNotes />
           </QueryClientProvider>
         </OrdersProvider>
       </MenuProvider>
