@@ -38,8 +38,9 @@ const SLICES = Array.from({ length: NUM_SLICES }, (_, i) => {
   };
 });
 
-const HOVER_SPRING  = { type: 'spring', stiffness: 260, damping: 22, mass: 0.6 } as const;
-const BOUNCE_SPRING = { type: 'spring', stiffness: 290, damping: 11, mass: 1.1 } as const;
+interface SpringConfig { type: 'spring'; stiffness: number; damping: number; mass: number; }
+const HOVER_SPRING:  SpringConfig = { type: 'spring', stiffness: 260, damping: 22, mass: 0.6 };
+const BOUNCE_SPRING: SpringConfig = { type: 'spring', stiffness: 290, damping: 11, mass: 1.1 };
 
 /* ── Component ───────────────────────────────────────────── */
 export default function PizzaHero() {
