@@ -31,48 +31,79 @@ export default function Inventory() {
       </div>
 
       <Card className="rounded-2xl border-card-border">
-        <CardContent className="p-4 md:p-6 overflow-x-auto">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Item</TableHead>
-                <TableHead>Category</TableHead>
-                <TableHead>Stock</TableHead>
-                <TableHead>Supplier</TableHead>
-                <TableHead>Updated</TableHead>
-                <TableHead className="text-right">Action</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {items.map((i) => {
-                const ratio = i.stock / i.par;
-                const level = ratio < 0.3 ? 'Critical' : ratio < 0.7 ? 'Low' : 'Good';
-                const levelColor =
-                  level === 'Critical' ? 'bg-red-50 text-red-700 border-red-200' :
-                  level === 'Low' ? 'bg-amber-50 text-amber-700 border-amber-200' :
-                  'bg-emerald-50 text-emerald-700 border-emerald-200';
-                return (
-                  <TableRow key={i.id} data-testid={`row-inventory-${i.id}`}>
-                    <TableCell className="font-semibold">{i.name}</TableCell>
-                    <TableCell className="text-muted-foreground">{i.category}</TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-2">
-                        <span>{i.stock} {i.unit}</span>
-                        <Badge variant="outline" className={levelColor}>{level}</Badge>
-                      </div>
-                    </TableCell>
-                    <TableCell className="text-muted-foreground">{i.supplier}</TableCell>
-                    <TableCell className="text-muted-foreground">{i.updated}</TableCell>
-                    <TableCell className="text-right">
-                      <Button size="sm" variant="outline" disabled={i.stock >= i.par} onClick={() => reorder(i.name, i.id)} data-testid={`button-reorder-${i.id}`}>
-                        Reorder
-                      </Button>
-                    </TableCell>
-                  </TableRow>
-                );
-              })}
-            </TableBody>
-          </Table>
+        <CardContent className="p-4 md:p-6">
+          {/* Mobile card list */}
+          <div className="sm:hidden space-y-3">
+            {items.map((i) => {
+              const ratio = i.stock / i.par;
+              const level = ratio < 0.3 ? 'Critical' : ratio < 0.7 ? 'Low' : 'Good';
+              const levelColor =
+                level === 'Critical' ? 'bg-red-50 text-red-700 border-red-200' :
+                level === 'Low' ? 'bg-amber-50 text-amber-700 border-amber-200' :
+                'bg-emerald-50 text-emerald-700 border-emerald-200';
+              return (
+                <div key={i.id} data-testid={`row-inventory-${i.id}`} className="rounded-xl border border-border p-4 space-y-2">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="font-semibold text-sm">{i.name}</span>
+                    <Badge variant="outline" className={levelColor}>{level}</Badge>
+                  </div>
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-muted-foreground">{i.category}</span>
+                    <span className="font-medium">{i.stock} {i.unit}</span>
+                  </div>
+                  <p className="text-xs text-muted-foreground">Supplier: {i.supplier} · Updated: {i.updated}</p>
+                  <Button size="sm" variant="outline" className="w-full" disabled={i.stock >= i.par} onClick={() => reorder(i.name, i.id)} data-testid={`button-reorder-${i.id}`}>
+                    Reorder
+                  </Button>
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Desktop table */}
+          <div className="hidden sm:block overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Item</TableHead>
+                  <TableHead>Category</TableHead>
+                  <TableHead>Stock</TableHead>
+                  <TableHead>Supplier</TableHead>
+                  <TableHead>Updated</TableHead>
+                  <TableHead className="text-right">Action</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {items.map((i) => {
+                  const ratio = i.stock / i.par;
+                  const level = ratio < 0.3 ? 'Critical' : ratio < 0.7 ? 'Low' : 'Good';
+                  const levelColor =
+                    level === 'Critical' ? 'bg-red-50 text-red-700 border-red-200' :
+                    level === 'Low' ? 'bg-amber-50 text-amber-700 border-amber-200' :
+                    'bg-emerald-50 text-emerald-700 border-emerald-200';
+                  return (
+                    <TableRow key={i.id} data-testid={`row-inventory-${i.id}`}>
+                      <TableCell className="font-semibold">{i.name}</TableCell>
+                      <TableCell className="text-muted-foreground">{i.category}</TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-2">
+                          <span>{i.stock} {i.unit}</span>
+                          <Badge variant="outline" className={levelColor}>{level}</Badge>
+                        </div>
+                      </TableCell>
+                      <TableCell className="text-muted-foreground">{i.supplier}</TableCell>
+                      <TableCell className="text-muted-foreground">{i.updated}</TableCell>
+                      <TableCell className="text-right">
+                        <Button size="sm" variant="outline" disabled={i.stock >= i.par} onClick={() => reorder(i.name, i.id)} data-testid={`button-reorder-${i.id}`}>
+                          Reorder
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
+          </div>
         </CardContent>
       </Card>
     </div>

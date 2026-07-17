@@ -35,7 +35,45 @@ export default function Customers() {
             <Input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search customers…" className="pl-8" data-testid="input-customers-search" />
           </div>
 
-          <div className="overflow-x-auto">
+          {/* Mobile card list */}
+          <div className="sm:hidden space-y-3">
+            {filtered.map((c) => (
+              <div key={c.id} data-testid={`row-customer-${c.id}`} className="rounded-xl border border-border p-4 space-y-2">
+                <div className="flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <div className={`w-9 h-9 rounded-full ${c.avatarColor} text-white text-xs font-bold flex items-center justify-center shrink-0`}>
+                      {c.name.split(' ').map((n: string) => n[0]).join('')}
+                    </div>
+                    <div className="min-w-0">
+                      <p className="font-semibold text-sm truncate">{c.name}</p>
+                      <p className="text-xs text-muted-foreground truncate">{c.email}</p>
+                    </div>
+                  </div>
+                  <Badge variant="outline" className={`shrink-0 ${tierColor[c.tier]}`}>{c.tier}</Badge>
+                </div>
+                <div className="grid grid-cols-3 gap-2 text-sm pt-1">
+                  <div className="text-center">
+                    <p className="text-xs text-muted-foreground">Orders</p>
+                    <p className="font-semibold">{c.orders}</p>
+                  </div>
+                  <div className="text-center">
+                    <p className="text-xs text-muted-foreground">Spent</p>
+                    <p className="font-semibold">${c.spent.toFixed(2)}</p>
+                  </div>
+                  <div className="text-center">
+                    <p className="text-xs text-muted-foreground">Last Visit</p>
+                    <p className="font-semibold text-xs">{c.lastVisit}</p>
+                  </div>
+                </div>
+              </div>
+            ))}
+            {filtered.length === 0 && (
+              <p className="text-center text-muted-foreground py-8 text-sm">No customers match your search.</p>
+            )}
+          </div>
+
+          {/* Desktop table */}
+          <div className="hidden sm:block overflow-x-auto">
             <Table>
               <TableHeader>
                 <TableRow>
@@ -52,7 +90,7 @@ export default function Customers() {
                     <TableCell>
                       <div className="flex items-center gap-2.5">
                         <div className={`w-8 h-8 rounded-full ${c.avatarColor} text-white text-xs font-bold flex items-center justify-center shrink-0`}>
-                          {c.name.split(' ').map((n) => n[0]).join('')}
+                          {c.name.split(' ').map((n: string) => n[0]).join('')}
                         </div>
                         <div className="min-w-0">
                           <p className="font-semibold text-sm truncate">{c.name}</p>

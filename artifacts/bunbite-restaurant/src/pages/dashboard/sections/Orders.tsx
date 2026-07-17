@@ -63,7 +63,44 @@ export default function Orders() {
             </div>
           </div>
 
-          <div className="overflow-x-auto">
+          {/* Mobile card list */}
+          <div className="sm:hidden space-y-3">
+            {filtered.map((o) => (
+              <div key={o.id} data-testid={`row-order-${o.id}`} className="rounded-xl border border-border p-4 space-y-3">
+                <div className="flex items-start justify-between gap-2">
+                  <div className="min-w-0">
+                    <p className="font-semibold text-sm">{o.id}</p>
+                    <p className="text-xs text-muted-foreground truncate">{o.items}</p>
+                  </div>
+                  <Badge variant="outline" className={`shrink-0 ${STATUS_META[o.status].badgeClass}`}>
+                    {STATUS_META[o.status].label}
+                  </Badge>
+                </div>
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-muted-foreground">{o.time}</span>
+                  <span className="font-semibold">${o.total.toFixed(2)}</span>
+                </div>
+                <Select value={o.status} onValueChange={(value) => handleStatusChange(o.id, value as OrderStatus)}>
+                  <SelectTrigger className="w-full" data-testid={`select-status-${o.id}`}>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {STATUS_OPTIONS.map((status) => (
+                      <SelectItem key={status} value={status} data-testid={`option-status-${status}-${o.id}`}>
+                        {STATUS_META[status].label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            ))}
+            {filtered.length === 0 && (
+              <p className="text-center text-muted-foreground py-8">No orders match your search.</p>
+            )}
+          </div>
+
+          {/* Desktop table */}
+          <div className="hidden sm:block overflow-x-auto">
             <Table>
               <TableHeader>
                 <TableRow>

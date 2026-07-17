@@ -30,40 +30,66 @@ export default function Payments() {
       </div>
 
       <Card className="rounded-2xl border-card-border">
-        <CardContent className="p-4 md:p-6 overflow-x-auto">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Transaction</TableHead>
-                <TableHead>Customer</TableHead>
-                <TableHead>Method</TableHead>
-                <TableHead>Amount</TableHead>
-                <TableHead>Date</TableHead>
-                <TableHead>Status</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {payments.map((p) => {
-                const Icon = methodIcon[p.method];
-                return (
-                  <TableRow key={p.id} data-testid={`row-payment-${p.id}`}>
-                    <TableCell className="font-semibold">{p.id}</TableCell>
-                    <TableCell>{p.customer}</TableCell>
-                    <TableCell>
-                      <span className="inline-flex items-center gap-1.5 text-muted-foreground">
-                        <Icon size={14} /> {p.method}
-                      </span>
-                    </TableCell>
-                    <TableCell>${p.amount.toFixed(2)}</TableCell>
-                    <TableCell className="text-muted-foreground">{p.date}</TableCell>
-                    <TableCell>
-                      <Badge variant="outline" className={statusColor[p.status]}>{p.status}</Badge>
-                    </TableCell>
-                  </TableRow>
-                );
-              })}
-            </TableBody>
-          </Table>
+        <CardContent className="p-4 md:p-6">
+          {/* Mobile card list */}
+          <div className="sm:hidden space-y-3">
+            {payments.map((p) => {
+              const Icon = methodIcon[p.method];
+              return (
+                <div key={p.id} data-testid={`row-payment-${p.id}`} className="rounded-xl border border-border p-4 space-y-2">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="font-semibold text-sm">{p.id}</span>
+                    <Badge variant="outline" className={statusColor[p.status]}>{p.status}</Badge>
+                  </div>
+                  <p className="text-sm text-foreground">{p.customer}</p>
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="inline-flex items-center gap-1.5 text-muted-foreground">
+                      <Icon size={14} /> {p.method}
+                    </span>
+                    <span className="font-semibold">${p.amount.toFixed(2)}</span>
+                  </div>
+                  <p className="text-xs text-muted-foreground">{p.date}</p>
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Desktop table */}
+          <div className="hidden sm:block overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Transaction</TableHead>
+                  <TableHead>Customer</TableHead>
+                  <TableHead>Method</TableHead>
+                  <TableHead>Amount</TableHead>
+                  <TableHead>Date</TableHead>
+                  <TableHead>Status</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {payments.map((p) => {
+                  const Icon = methodIcon[p.method];
+                  return (
+                    <TableRow key={p.id} data-testid={`row-payment-${p.id}`}>
+                      <TableCell className="font-semibold">{p.id}</TableCell>
+                      <TableCell>{p.customer}</TableCell>
+                      <TableCell>
+                        <span className="inline-flex items-center gap-1.5 text-muted-foreground">
+                          <Icon size={14} /> {p.method}
+                        </span>
+                      </TableCell>
+                      <TableCell>${p.amount.toFixed(2)}</TableCell>
+                      <TableCell className="text-muted-foreground">{p.date}</TableCell>
+                      <TableCell>
+                        <Badge variant="outline" className={statusColor[p.status]}>{p.status}</Badge>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
+          </div>
         </CardContent>
       </Card>
     </div>

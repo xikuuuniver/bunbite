@@ -44,40 +44,69 @@ export default function Promotions() {
       </div>
 
       <Card className="rounded-2xl border-card-border">
-        <CardContent className="p-4 md:p-6 overflow-x-auto">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Campaign</TableHead>
-                <TableHead>Code</TableHead>
-                <TableHead>Discount</TableHead>
-                <TableHead>Channel</TableHead>
-                <TableHead>Redemptions</TableHead>
-                <TableHead>Ends</TableHead>
-                <TableHead>Status</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {promos.map((p) => (
-                <TableRow
-                  key={p.id}
-                  className="cursor-pointer"
-                  onClick={() => toggleStatus(p.id)}
-                  data-testid={`row-promotion-${p.id}`}
-                >
-                  <TableCell className="font-semibold">{p.title}</TableCell>
-                  <TableCell><code className="text-xs bg-muted px-1.5 py-0.5 rounded">{p.code}</code></TableCell>
-                  <TableCell>{p.discount}</TableCell>
-                  <TableCell className="text-muted-foreground">{p.channel}</TableCell>
-                  <TableCell>{p.redemptions}</TableCell>
-                  <TableCell className="text-muted-foreground">{p.ends}</TableCell>
-                  <TableCell>
-                    <Badge variant="outline" className={statusColor[p.status]}>{p.status}</Badge>
-                  </TableCell>
+        <CardContent className="p-4 md:p-6">
+          {/* Mobile card list */}
+          <div className="sm:hidden space-y-3">
+            {promos.map((p) => (
+              <div
+                key={p.id}
+                data-testid={`row-promotion-${p.id}`}
+                onClick={() => toggleStatus(p.id)}
+                className="rounded-xl border border-border p-4 space-y-2 cursor-pointer active:opacity-70 transition-opacity"
+              >
+                <div className="flex items-start justify-between gap-2">
+                  <div className="min-w-0">
+                    <p className="font-semibold text-sm">{p.title}</p>
+                    <code className="text-xs bg-muted px-1.5 py-0.5 rounded mt-0.5 inline-block">{p.code}</code>
+                  </div>
+                  <Badge variant="outline" className={`shrink-0 ${statusColor[p.status]}`}>{p.status}</Badge>
+                </div>
+                <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-sm">
+                  <div><span className="text-muted-foreground text-xs">Discount: </span>{p.discount}</div>
+                  <div><span className="text-muted-foreground text-xs">Channel: </span>{p.channel}</div>
+                  <div><span className="text-muted-foreground text-xs">Redemptions: </span>{p.redemptions}</div>
+                  <div><span className="text-muted-foreground text-xs">Ends: </span>{p.ends}</div>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Desktop table */}
+          <div className="hidden sm:block overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Campaign</TableHead>
+                  <TableHead>Code</TableHead>
+                  <TableHead>Discount</TableHead>
+                  <TableHead>Channel</TableHead>
+                  <TableHead>Redemptions</TableHead>
+                  <TableHead>Ends</TableHead>
+                  <TableHead>Status</TableHead>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+              </TableHeader>
+              <TableBody>
+                {promos.map((p) => (
+                  <TableRow
+                    key={p.id}
+                    className="cursor-pointer"
+                    onClick={() => toggleStatus(p.id)}
+                    data-testid={`row-promotion-${p.id}`}
+                  >
+                    <TableCell className="font-semibold">{p.title}</TableCell>
+                    <TableCell><code className="text-xs bg-muted px-1.5 py-0.5 rounded">{p.code}</code></TableCell>
+                    <TableCell>{p.discount}</TableCell>
+                    <TableCell className="text-muted-foreground">{p.channel}</TableCell>
+                    <TableCell>{p.redemptions}</TableCell>
+                    <TableCell className="text-muted-foreground">{p.ends}</TableCell>
+                    <TableCell>
+                      <Badge variant="outline" className={statusColor[p.status]}>{p.status}</Badge>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
         </CardContent>
       </Card>
     </div>

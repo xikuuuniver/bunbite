@@ -70,9 +70,33 @@ export default function DiscoverMenus() {
           </p>
         </motion.div>
 
+        {/* Mobile: horizontal scroll tabs */}
+        <div className="lg:hidden flex gap-2 overflow-x-auto pb-3 mb-2 -mx-4 px-4" style={{ scrollbarWidth: 'none' }}>
+          {categories.map((cat) => {
+            const isActive = activeCat?.id === cat.id;
+            return (
+              <button
+                key={cat.id}
+                onClick={() => setActiveCategory(cat.id)}
+                data-testid={`tab-category-${cat.id}`}
+                className={`flex-shrink-0 flex items-center gap-1.5 px-4 py-2.5 rounded-full font-display text-sm transition-all ${
+                  isActive
+                    ? 'bg-primary text-white shadow-md'
+                    : 'bg-white text-primary border border-primary/20 hover:border-primary/40'
+                }`}
+              >
+                {cat.name}
+                <span className={`text-xs font-sans font-normal ${isActive ? 'text-white/70' : 'text-primary/40'}`}>
+                  ({cat.items.length})
+                </span>
+              </button>
+            );
+          })}
+        </div>
+
         <div className="grid lg:grid-cols-12 gap-8 lg:gap-16">
-          {/* Categories Sidebar */}
-          <div className="lg:col-span-4 flex flex-col gap-2">
+          {/* Categories Sidebar — desktop only */}
+          <div className="hidden lg:flex lg:col-span-4 flex-col gap-2">
             {categories.map((cat) => {
               const isActive = activeCat?.id === cat.id;
               return (
@@ -104,7 +128,7 @@ export default function DiscoverMenus() {
           </div>
 
           {/* Menu Items Panel */}
-          <div className="lg:col-span-8 bg-white rounded-3xl p-6 md:p-8 shadow-xl border border-primary/5 min-h-[400px]">
+          <div className="lg:col-span-8 bg-white rounded-3xl p-4 sm:p-6 md:p-8 shadow-xl border border-primary/5 min-h-[400px]">
             <AnimatePresence mode="wait">
               <motion.div
                 key={activeCat?.id}
@@ -154,7 +178,7 @@ export default function DiscoverMenus() {
                     <div className="shrink-0 flex items-center gap-1.5">
                       <button
                         onClick={() => setSelectedItem(item)}
-                        className="w-9 h-9 flex items-center justify-center rounded-full border bg-white border-primary/10 text-primary/40 hover:text-primary hover:border-primary/30 transition-all active:scale-90"
+                        className="w-9 h-9 sm:flex hidden items-center justify-center rounded-full border bg-white border-primary/10 text-primary/40 hover:text-primary hover:border-primary/30 transition-all active:scale-90"
                         aria-label={`View details for ${item.name}`}
                         title="View details"
                       >
@@ -164,7 +188,7 @@ export default function DiscoverMenus() {
                         onClick={() => toggleFavorite({ name: item.name, price: item.price, image: item.image, desc: item.desc })}
                         aria-label={isFavorite(item.name) ? `Remove ${item.name} from favorites` : `Add ${item.name} to favorites`}
                         aria-pressed={isFavorite(item.name)}
-                        className={`w-9 h-9 flex items-center justify-center rounded-full border transition-all active:scale-90 ${
+                        className={`w-10 h-10 sm:w-9 sm:h-9 flex items-center justify-center rounded-full border transition-all active:scale-90 ${
                           isFavorite(item.name)
                             ? 'bg-secondary/10 border-secondary text-secondary'
                             : 'bg-white border-primary/10 text-primary/40 hover:text-secondary hover:border-secondary/40'
@@ -175,7 +199,7 @@ export default function DiscoverMenus() {
                       </button>
                       <button
                         onClick={() => handleBuy(item)}
-                        className="flex items-center gap-1.5 bg-secondary text-secondary-foreground px-4 py-2 rounded-full font-bold text-sm hover:scale-105 active:scale-95 transition-transform shadow-md"
+                        className="flex items-center gap-1.5 bg-secondary text-secondary-foreground px-4 py-2.5 sm:py-2 rounded-full font-bold text-sm hover:scale-105 active:scale-95 transition-transform shadow-md"
                         data-testid={`button-buy-${activeCategory}-${i}`}
                       >
                         <ShoppingCart size={14} />

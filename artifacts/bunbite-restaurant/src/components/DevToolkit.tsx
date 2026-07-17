@@ -534,8 +534,9 @@ function FloatingBadge({ onBug, onImprovement, onChangelog }: {
       {/* Shortcuts panel */}
       {open && (
         <div
-          className="rounded-xl p-4 w-72 shadow-2xl"
+          className="rounded-xl p-4 shadow-2xl"
           style={{
+            width: 'min(288px, calc(100vw - 2rem))',
             background: 'linear-gradient(160deg,#111827 0%,#0b0f1a 100%)',
             border: '1px solid rgba(255,255,255,0.09)',
           }}

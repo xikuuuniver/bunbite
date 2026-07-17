@@ -273,7 +273,7 @@ export default function ReserveTable() {
           </div>
 
           <motion.div 
-            className="lg:w-1/2 min-h-[400px] lg:min-h-full relative"
+            className="hidden sm:block lg:w-1/2 min-h-[300px] lg:min-h-full relative"
             initial={{ opacity: 0 }}
             whileInView={{ opacity: 1 }}
             viewport={{ once: true }}

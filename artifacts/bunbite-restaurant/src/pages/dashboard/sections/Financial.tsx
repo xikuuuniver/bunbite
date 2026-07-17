@@ -88,7 +88,7 @@ export default function Financial() {
         actions={
           <>
             <Select value={periodId} onValueChange={(v) => setPeriodId(v as FinancePeriodId)}>
-              <SelectTrigger className="w-[210px]" data-testid="select-finance-period">
+              <SelectTrigger className="w-full sm:w-[210px]" data-testid="select-finance-period">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>

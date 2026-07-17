@@ -117,8 +117,53 @@ export default function Reservations() {
             </div>
           </div>
 
-          {/* Table */}
-          <div className="overflow-x-auto">
+          {/* Mobile card list */}
+          <div className="md:hidden space-y-3">
+            {filtered.map((p) => (
+              <div key={p.id} data-testid={`row-booking-${p.id}`} className="rounded-xl border border-border p-4 space-y-3">
+                <div className="flex items-start justify-between gap-2">
+                  <div className="min-w-0">
+                    <p className="font-semibold text-sm">{p.fullName}</p>
+                    <p className="text-xs text-muted-foreground">@{p.username} · {p.id}</p>
+                  </div>
+                  <Badge variant="outline" className={`shrink-0 ${BOOKING_STATUS_META[p.status].badgeClass}`}>
+                    {BOOKING_STATUS_META[p.status].label}
+                  </Badge>
+                </div>
+                <div className="grid grid-cols-2 gap-2 text-sm">
+                  <div>
+                    <p className="text-xs text-muted-foreground">Date & Time</p>
+                    <p className="font-medium text-xs mt-0.5">{p.bookingDateTime}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground">Guests</p>
+                    <p className="font-medium mt-0.5">{p.guests}</p>
+                  </div>
+                </div>
+                <Select value={p.status} onValueChange={(value) => handleStatusChange(p.id, value as BookingStatus)}>
+                  <SelectTrigger className="w-full" data-testid={`select-booking-status-${p.id}`}>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {STATUS_OPTIONS.map((status) => (
+                      <SelectItem key={status} value={status} data-testid={`option-booking-${status}-${p.id}`}>
+                        {BOOKING_STATUS_META[status].label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            ))}
+            {filtered.length === 0 && (
+              <div className="text-center text-muted-foreground py-10">
+                <CalendarCheck size={32} className="mx-auto mb-2 opacity-25" />
+                <p className="text-sm">{query || statusFilter !== 'all' ? 'No bookings match your search or filter.' : 'No table bookings yet.'}</p>
+              </div>
+            )}
+          </div>
+
+          {/* Desktop table */}
+          <div className="hidden md:block overflow-x-auto">
             <Table>
               <TableHeader>
                 <TableRow>
@@ -141,7 +186,7 @@ export default function Reservations() {
                     <TableCell className="text-muted-foreground whitespace-nowrap">{p.bookingDateTime}</TableCell>
                     <TableCell className="text-center">{p.guests}</TableCell>
                     <TableCell className="text-right">
-                      {p.fee > 0 ? `$${p.fee.toFixed(2)}` : <span className="text-muted-foreground text-xs">Free</span>}
+                      {p.fee > 0 ? `${p.fee.toFixed(2)}` : <span className="text-muted-foreground text-xs">Free</span>}
                     </TableCell>
                     <TableCell>
                       <Badge variant="outline" className={BOOKING_STATUS_META[p.status].badgeClass}>

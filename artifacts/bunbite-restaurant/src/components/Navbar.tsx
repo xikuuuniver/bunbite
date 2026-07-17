@@ -694,9 +694,17 @@ export default function Navbar() {
             {user ? (
               <div className="flex flex-col items-center gap-4 w-full max-w-xs">
                 <AuthActions mobile />
+                <Link
+                  href="/dashboard"
+                  onClick={() => setIsMobileMenuOpen(false)}
+                  className="flex items-center justify-center w-full max-w-xs bg-white/15 hover:bg-white/25 text-white font-semibold py-3.5 rounded-full text-base transition-colors"
+                  data-testid="button-mobile-manage"
+                >
+                  Manage Dashboard
+                </Link>
                 <button
                   onClick={() => { logout(); setIsMobileMenuOpen(false); }}
-                  className="flex items-center gap-2 text-white/70 hover:text-white text-sm transition-colors mt-2"
+                  className="flex items-center gap-2 text-white/70 hover:text-white text-sm transition-colors"
                 >
                   <LogOut size={15} /> Log out
                 </button>
