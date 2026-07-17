@@ -5,10 +5,9 @@ import pizzaImg from '@/assets/chicken-pizza.png';
 
 /* ── Config ─────────────────────────────────────────────── */
 const NUM_SLICES  = 6;
-const FLOAT_DIST  = 24;   // px: hover outward travel
-const GAP_AT_REST = 1.5;  // px: constant resting separation
+const FLOAT_DIST  = 24;
+const GAP_AT_REST = 1.5;
 
-/* ── Helpers ─────────────────────────────────────────────── */
 function toRad(deg: number) { return (deg * Math.PI) / 180; }
 
 function buildClipPath(i: number): string {
@@ -26,23 +25,20 @@ function buildClipPath(i: number): string {
   return `polygon(${pts.join(', ')})`;
 }
 
-/* ── Precomputed slice data ──────────────────────────────── */
 const SLICES = Array.from({ length: NUM_SLICES }, (_, i) => {
   const step      = 360 / NUM_SLICES;
   const centerDeg = i * step + step / 2 - 90;
   const rad       = toRad(centerDeg);
   return {
     clipPath : buildClipPath(i),
-    tx       : +(Math.sin(rad) * FLOAT_DIST).toFixed(3),
+    tx       : +(Math.sin(rad)  * FLOAT_DIST).toFixed(3),
     ty       : +(-Math.cos(rad) * FLOAT_DIST).toFixed(3),
-    rxRest   : +(Math.sin(rad) * GAP_AT_REST).toFixed(3),
+    rxRest   : +(Math.sin(rad)  * GAP_AT_REST).toFixed(3),
     ryRest   : +(-Math.cos(rad) * GAP_AT_REST).toFixed(3),
   };
 });
 
-/* ── Spring configs ──────────────────────────────────────── */
 const HOVER_SPRING  = { type: 'spring', stiffness: 260, damping: 22, mass: 0.6 } as const;
-// Lower damping → visible bounce oscillation on drop
 const BOUNCE_SPRING = { type: 'spring', stiffness: 290, damping: 11, mass: 1.1 } as const;
 
 /* ── Component ───────────────────────────────────────────── */
@@ -52,30 +48,33 @@ export default function PizzaHero() {
     window.matchMedia('(hover: none) and (pointer: coarse)').matches;
 
   /*
-   * One useMotionValue per axis per slice — declared individually at the top
-   * level so React's hook rules are satisfied (fixed count, fixed order).
-   * We drive these imperatively during drag (no re-render) and hand off to
-   * Framer Motion's standalone animate() for spring/bounce transitions.
+   * All motion values declared individually at the top level — this strictly
+   * follows React's Rules of Hooks (no loops, no conditionals).
+   * NUM_SLICES = 6, so we have exactly 18 values (x, y, scale × 6).
    */
-  // eslint-disable-next-line react-hooks/rules-of-hooks
-  const mx = SLICES.map((s) => useMotionValue(s.rxRest));
-  // eslint-disable-next-line react-hooks/rules-of-hooks
-  const my = SLICES.map((s) => useMotionValue(s.ryRest));
-  // eslint-disable-next-line react-hooks/rules-of-hooks
-  const ms = SLICES.map(() => useMotionValue(1));
+  const x0 = useMotionValue(SLICES[0].rxRest); const y0 = useMotionValue(SLICES[0].ryRest); const s0 = useMotionValue(1);
+  const x1 = useMotionValue(SLICES[1].rxRest); const y1 = useMotionValue(SLICES[1].ryRest); const s1 = useMotionValue(1);
+  const x2 = useMotionValue(SLICES[2].rxRest); const y2 = useMotionValue(SLICES[2].ryRest); const s2 = useMotionValue(1);
+  const x3 = useMotionValue(SLICES[3].rxRest); const y3 = useMotionValue(SLICES[3].ryRest); const s3 = useMotionValue(1);
+  const x4 = useMotionValue(SLICES[4].rxRest); const y4 = useMotionValue(SLICES[4].ryRest); const s4 = useMotionValue(1);
+  const x5 = useMotionValue(SLICES[5].rxRest); const y5 = useMotionValue(SLICES[5].ryRest); const s5 = useMotionValue(1);
+
+  // Stable lookup arrays (not created on every render — defined once from the hook values above)
+  const mx = useRef([x0, x1, x2, x3, x4, x5]);
+  const my = useRef([y0, y1, y2, y3, y4, y5]);
+  const ms = useRef([s0, s1, s2, s3, s4, s5]);
 
   const [tappedSlice, setTappedSlice] = useState<number | null>(null);
   const dragRef = useRef<{ index: number; startX: number; startY: number } | null>(null);
 
-  /* Animate a single slice's motion values with a given spring */
   const springTo = (
     i: number,
     x: number, y: number, scale: number,
     spring = HOVER_SPRING,
   ) => {
-    animate(mx[i], x, spring);
-    animate(my[i], y, spring);
-    animate(ms[i], scale, spring);
+    animate(mx.current[i], x,     spring);
+    animate(my.current[i], y,     spring);
+    animate(ms.current[i], scale, spring);
   };
 
   /* ── Hover ── */
@@ -91,33 +90,30 @@ export default function PizzaHero() {
 
   /* ── Right-click drag ── */
   const handleMouseDown = (e: React.MouseEvent, i: number) => {
-    if (e.button !== 2) return;   // only right mouse button
+    if (e.button !== 2) return;
     e.preventDefault();
 
-    dragRef.current = { index: i, startX: e.clientX, startY: e.clientY };
     const { rxRest, ryRest } = SLICES[i];
+    dragRef.current = { index: i, startX: e.clientX, startY: e.clientY };
 
     const onMove = (ev: MouseEvent) => {
       if (!dragRef.current) return;
-      const dx = ev.clientX - dragRef.current.startX;
-      const dy = ev.clientY - dragRef.current.startY;
-      // Direct set — instant follow, zero re-renders
-      mx[i].set(rxRest + dx);
-      my[i].set(ryRest + dy);
-      ms[i].set(1.08);
+      mx.current[i].set(rxRest + ev.clientX - dragRef.current.startX);
+      my.current[i].set(ryRest + ev.clientY - dragRef.current.startY);
+      ms.current[i].set(1.08);
     };
 
     const onUp = (ev: MouseEvent) => {
       if (ev.button !== 2) return;
       dragRef.current = null;
       window.removeEventListener('mousemove', onMove);
-      window.removeEventListener('mouseup', onUp);
-      // Bounce back with realistic spring drop
+      window.removeEventListener('mouseup',   onUp);
+      // Bounce back to resting position
       springTo(i, rxRest, ryRest, 1, BOUNCE_SPRING);
     };
 
     window.addEventListener('mousemove', onMove);
-    window.addEventListener('mouseup', onUp);
+    window.addEventListener('mouseup',   onUp);
   };
 
   /* ── Touch tap toggle ── */
@@ -132,6 +128,10 @@ export default function PizzaHero() {
       next === i ? 1.06             : 1,
     );
   };
+
+  const mvX = mx.current;
+  const mvY = my.current;
+  const mvS = ms.current;
 
   return (
     <motion.div
@@ -154,7 +154,7 @@ export default function PizzaHero() {
         <motion.div
           key={i}
           className="absolute inset-0 cursor-pointer"
-          style={{ clipPath, x: mx[i], y: my[i], scale: ms[i] }}
+          style={{ clipPath, x: mvX[i], y: mvY[i], scale: mvS[i] }}
           onMouseEnter={() => handleMouseEnter(i)}
           onMouseLeave={() => handleMouseLeave(i)}
           onMouseDown={(e) => handleMouseDown(e, i)}
