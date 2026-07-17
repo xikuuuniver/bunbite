@@ -16,6 +16,7 @@ import OpeningHours from '@/components/OpeningHours';
 import Footer from '@/components/Footer';
 import NotFound from '@/pages/not-found';
 import DashboardLayout from '@/pages/dashboard/DashboardLayout';
+import DevToolkit from '@/components/DevToolkit';
 
 const queryClient = new QueryClient();
 
@@ -58,6 +59,7 @@ function App() {
               <Router />
             </WouterRouter>
             <Toaster />
+            <DevToolkit />
           </QueryClientProvider>
         </OrdersProvider>
       </MenuProvider>

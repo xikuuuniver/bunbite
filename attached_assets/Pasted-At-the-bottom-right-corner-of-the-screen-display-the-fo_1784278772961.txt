@@ -1,0 +1,71 @@
+At the bottom-right corner of the screen, display the following message:
+
+> **You are currently using the first Beta version of Bunbite One.**
+
+Below that, display a small **Developer Shortcuts** section with the available keyboard shortcuts:
+
+* **Ctrl + Shift + Alt** → Report a Bug
+* **Ctrl + R** → Suggest an Improvement
+* **Ctrl + N** → View Latest Changes
+
+---
+
+## Ctrl + Shift + Alt — Report a Bug
+
+When the user presses **Ctrl + Shift + Alt**, open a modern bug report dialog.
+
+The popup should automatically capture the current page exactly as it appears at that moment and display it as a **Screenshot Preview**.
+
+The form should include:
+
+* Screenshot Preview (Automatically Captured)
+* Bug Type
+* Description
+* Submit Button
+
+This report should provide enough information for developers to reproduce the issue.
+
+---
+
+## Ctrl + R — Improvement Suggestion
+
+When the user presses **Ctrl + R**, open an **Improvement Suggestion** popup.
+
+The popup should also automatically capture the current page and display it as a screenshot preview.
+
+The form should include:
+
+* Screenshot Preview
+* Description
+* Submit Button
+
+This allows users and testers to suggest UI, UX, or feature improvements based on the exact screen they are viewing.
+
+---
+
+## Ctrl + N — Latest Changes
+
+When the user presses **Ctrl + N**, display a modern **Release History / Changelog** window similar to GitHub.
+
+Each update should include:
+
+* Version Number
+* Release Date
+* Developer Name
+* Commit Title
+* Detailed Description
+* Bugs Fixed
+* Improvements
+* New Features
+
+Additionally, display development statistics for each update, including:
+
+* Total files changed
+* Number of lines added
+* Number of lines removed
+* Commit ID (optional)
+* Last updated time
+
+The interface should resemble GitHub's commit history, making it easy for users and developers to review every change made to the project.
+
+The entire developer toolkit should have a clean, modern, responsive, and professional interface while remaining lightweight and easy to use.
