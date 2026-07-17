@@ -1,6 +1,6 @@
-# [Project name]
+# BunBite Restaurant
 
-_Replace the heading above with the project's name, and this line with one sentence describing what this app does for users._
+A restaurant web app with a React frontend, Express API server, and PostgreSQL database.
 
 ## Run & Operate
 
