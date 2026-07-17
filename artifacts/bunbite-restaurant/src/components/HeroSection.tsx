@@ -7,8 +7,8 @@ export default function HeroSection() {
   };
 
   return (
-    <section id="home" className="relative min-h-[100dvh] pt-20 bg-primary overflow-hidden flex items-center">
-      <div className="container mx-auto px-4 grid lg:grid-cols-2 gap-12 items-center relative z-10 py-12">
+    <section id="home" className="relative pt-20 bg-primary overflow-hidden flex items-start lg:items-center lg:min-h-[100dvh]">
+      <div className="container mx-auto px-4 grid lg:grid-cols-2 gap-8 lg:gap-12 items-center relative z-10 py-16 sm:py-20 lg:py-12 w-full">
         <motion.div 
           initial={{ opacity: 0, x: -50 }}
           animate={{ opacity: 1, x: 0 }}
