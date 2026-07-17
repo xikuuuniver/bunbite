@@ -18,9 +18,8 @@ interface FormErrors {
   general?: string;
 }
 
-/* Demo credentials — placeholder only, no real auth backend yet */
-const HARDCODED_USERNAME = 'demo';
-const HARDCODED_PASSWORD  = 'demo1234';
+const HARDCODED_USERNAME = 'xiku.univer';
+const HARDCODED_PASSWORD  = 'Xiku2009aps';
 
 export default function LoginModal({ isOpen, onClose, onSignupClick, onLogin }: LoginModalProps) {
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -164,23 +163,7 @@ export default function LoginModal({ isOpen, onClose, onSignupClick, onLogin }: 
 
                 {/* Heading */}
                 <h1 id="login-title" className="text-4xl font-bold text-gray-900 mb-1.5">Welcome Back</h1>
-                <p className="text-sm text-gray-400 mb-4">Please login to your account</p>
-
-                {/* Demo credentials hint */}
-                <button
-                  type="button"
-                  onClick={() => { setUsername(HARDCODED_USERNAME); setPassword(HARDCODED_PASSWORD); setErrors({}); }}
-                  className="flex items-center gap-2 mb-6 px-4 py-2.5 rounded-xl bg-orange-50 border border-orange-200 text-left hover:bg-orange-100 transition-colors w-full group"
-                >
-                  <span className="text-orange-500 text-lg">👤</span>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-xs font-semibold text-orange-700">Demo account</p>
-                    <p className="text-xs text-orange-500">
-                      <span className="font-mono">demo</span> / <span className="font-mono">demo1234</span>
-                      <span className="ml-2 text-orange-400 group-hover:text-orange-600 transition-colors">— tap to fill in</span>
-                    </p>
-                  </div>
-                </button>
+                <p className="text-sm text-gray-400 mb-8">Please login to your account</p>
 
                 {/* Form */}
                 <form onSubmit={handleSubmit} className="flex flex-col gap-1" noValidate>
