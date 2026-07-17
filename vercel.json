@@ -1,5 +1,4 @@
 {
-  "framework": null,
   "installCommand": "npm install -g pnpm && pnpm install --frozen-lockfile",
   "buildCommand": "pnpm --filter @workspace/bunbite-restaurant run build",
   "outputDirectory": "artifacts/bunbite-restaurant/dist/public",
