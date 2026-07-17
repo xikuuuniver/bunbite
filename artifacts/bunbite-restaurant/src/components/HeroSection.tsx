@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion';
-import HeroNotes from './HeroNotes';
+import PizzaHero from './PizzaHero';
 
 export default function HeroSection() {
   const scrollToMenu = () => {
@@ -55,7 +55,7 @@ export default function HeroSection() {
           </motion.div>
         </motion.div>
 
-        <HeroNotes />
+        <PizzaHero />
       </div>
     </section>
   );
