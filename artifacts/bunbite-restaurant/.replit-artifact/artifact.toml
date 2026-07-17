@@ -1,0 +1,27 @@
+kind = "web"
+previewPath = "/"
+title = "BunBite Restaurant"
+version = "1.0.0"
+id = "artifacts/bunbite-restaurant"
+router = "path"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 19613
+
+[services.development]
+run = "pnpm --filter @workspace/bunbite-restaurant run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/bunbite-restaurant", "run", "build" ]
+serve = "static"
+publicDir = "artifacts/bunbite-restaurant/dist/public"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "19613"
+BASE_PATH = "/"
