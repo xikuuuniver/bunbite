@@ -1,6 +1,5 @@
 import { motion } from 'framer-motion';
 import PizzaHero from './PizzaHero';
-import PepsiCanHero from './PepsiCanHero';
 
 export default function HeroSection() {
   const scrollToMenu = () => {
@@ -58,17 +57,9 @@ export default function HeroSection() {
           </motion.div>
         </motion.div>
 
-        {/* ── Right: Pepsi can + Pizza ── */}
-        <div className="flex items-center justify-center gap-4 sm:gap-6 lg:gap-8 w-full">
-          {/* Pepsi can — left of pizza, vertically centred, slightly lower for natural look */}
-          <div className="flex items-end justify-center pb-8 sm:pb-12">
-            <PepsiCanHero />
-          </div>
-
-          {/* Pizza — right, dominant */}
-          <div className="flex-1 min-w-0 max-w-[340px] sm:max-w-[380px] lg:max-w-[420px]">
-            <PizzaHero />
-          </div>
+        {/* ── Right: Pizza ── */}
+        <div className="flex items-center justify-center w-full">
+          <PizzaHero />
         </div>
 
       </div>
