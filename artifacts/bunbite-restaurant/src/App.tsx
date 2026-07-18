@@ -3,6 +3,7 @@ import { Toaster } from '@/components/ui/toaster';
 import { AuthProvider } from '@/context/AuthContext';
 import { OrdersProvider } from '@/context/OrdersContext';
 import { MenuProvider } from '@/context/MenuContext';
+import { CategoryProvider } from '@/context/CategoryContext';
 import { Route, Switch, Router as WouterRouter } from 'wouter';
 import Navbar from '@/components/Navbar';
 import HeroSection from '@/components/HeroSection';

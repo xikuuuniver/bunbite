@@ -261,6 +261,33 @@ export const payments: PaymentTxn[] = [
   { id: 'TXN-8836', customer: 'Sophia Martinez', method: 'Wallet', amount: 9.50,  status: 'Paid',     date: 'Jul 13, 07:47 PM' },
 ];
 
+// ---------------------------------------------------------------------------
+// Category data model
+// ---------------------------------------------------------------------------
+
+export interface Category {
+  id: string;
+  name: string;
+  description: string;
+  image?: string;   // URL or object-URL for uploaded images
+  icon?: string;    // emoji
+  displayOrder: number;
+  visible: boolean; // shown on customer-facing site
+  status: 'Active' | 'Inactive';
+  createdAt: string;
+  updatedAt: string;
+}
+
+export const categories: Category[] = [
+  { id: 'CAT-01', name: 'Burgers',  description: 'Handcrafted burgers with premium toppings and freshest ingredients.', icon: '🍔', displayOrder: 1, visible: true, status: 'Active',   createdAt: 'Jun 1, 2026',  updatedAt: 'Jul 10, 2026' },
+  { id: 'CAT-02', name: 'Chicken',  description: 'Crispy and grilled chicken options for every craving.',               icon: '🍗', displayOrder: 2, visible: true, status: 'Active',   createdAt: 'Jun 1, 2026',  updatedAt: 'Jul 8, 2026'  },
+  { id: 'CAT-03', name: 'Pizza',    description: 'Wood-fired artisan pizzas made with seasonal toppings.',              icon: '🍕', displayOrder: 3, visible: true, status: 'Active',   createdAt: 'Jun 5, 2026',  updatedAt: 'Jul 5, 2026'  },
+  { id: 'CAT-04', name: 'Sandwich', description: 'Classic and creative sandwich combinations.',                         icon: '🥪', displayOrder: 4, visible: true, status: 'Active',   createdAt: 'Jun 5, 2026',  updatedAt: 'Jul 1, 2026'  },
+  { id: 'CAT-05', name: 'Sides',    description: 'Perfect companions for any main dish.',                               icon: '🍟', displayOrder: 5, visible: true, status: 'Active',   createdAt: 'Jun 1, 2026',  updatedAt: 'Jul 12, 2026' },
+  { id: 'CAT-06', name: 'Drinks',   description: 'Refreshing beverages, coolers and signature mixes.',                  icon: '🥤', displayOrder: 6, visible: true, status: 'Active',   createdAt: 'Jun 1, 2026',  updatedAt: 'Jul 15, 2026' },
+  { id: 'CAT-07', name: 'Desserts', description: 'Sweet endings to every great meal.',                                  icon: '🍰', displayOrder: 7, visible: true, status: 'Active',   createdAt: 'Jun 10, 2026', updatedAt: 'Jul 6, 2026'  },
+];
+
 export const revenueSeries = [
   { day: 'Mon', revenue: 1840, orders: 132 },
   { day: 'Tue', revenue: 2010, orders: 145 },
