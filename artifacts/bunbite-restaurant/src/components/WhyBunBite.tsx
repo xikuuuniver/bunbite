@@ -120,8 +120,8 @@ export default function WhyBunBite() {
         {/* ── Carousel ── */}
         <div className="relative">
           {/* Clipping wrapper */}
-          <div className="overflow-hidden rounded-2xl">
-            <div className="relative h-[200px] sm:h-[300px] md:h-[400px] flex items-center justify-center">
+          <div className="overflow-hidden">
+            <div className="relative h-[155px] sm:h-[210px] md:h-[290px] flex items-center justify-center">
 
               {VIDEOS.map((video, i) => {
                 let offset = i - activeIdx;
@@ -137,15 +137,16 @@ export default function WhyBunBite() {
                     style={{ zIndex: isCenter ? 10 : 5 }}
                   >
                     <motion.div
-                      className="w-4/5 sm:w-[65%] md:w-[58%] pointer-events-auto cursor-pointer"
+                      className="w-[75%] sm:w-[58%] md:w-[52%] pointer-events-auto cursor-pointer"
                       animate={cardAnim(offset)}
                       transition={SPRING}
+                      whileHover={isCenter ? { y: -4, transition: { type: 'spring', stiffness: 300, damping: 20 } } : {}}
                       onClick={() => {
                         if (isCenter) setExpandedId(video.id);
                         else go(offset < 0 ? -1 : 1);
                       }}
                     >
-                      <div className="relative rounded-2xl overflow-hidden shadow-2xl group">
+                      <div className="relative rounded-[22px] overflow-hidden shadow-[0_8px_32px_rgba(0,0,0,0.18)] hover:shadow-[0_16px_48px_rgba(0,0,0,0.28)] transition-shadow duration-300 group">
 
                         {/* Thumbnail with graceful fallback */}
                         <VideoThumbnail id={video.id} title={video.title} />
