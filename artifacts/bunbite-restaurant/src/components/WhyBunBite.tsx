@@ -2,51 +2,59 @@ import { useState, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronLeft, ChevronRight, X, Play, Clapperboard } from 'lucide-react';
 
-/* ── Video catalogue ─────────────────────────────────────────────────────────
-   Replace these IDs with your own YouTube video IDs.
-   Thumbnails are fetched directly from YouTube's CDN.
-   ────────────────────────────────────────────────────────────────────────── */
+/* ── Video data ──────────────────────────────────────────────────────────── */
 const VIDEOS = [
   {
     id: 'vQkiSS9r6OQ',
-    title: 'Craft Burger Mastery',
-    desc: 'Watch our chefs build the perfect BunBite stack, layer by layer.',
+    title: 'Crafting The Perfect Burger',
+    duration: '0:45',
   },
   {
     id: 'SKkGV57_dPU',
-    title: 'Fresh Ingredient Stories',
-    desc: 'From local farms to your table — only the freshest ingredients.',
+    title: 'The Bunbite Chicken Pizza 🍕',
+    duration: '0:52',
   },
   {
     id: 'oHezTtJVIiE',
-    title: 'Bold Flavor Combos',
-    desc: 'Unexpected pairings that turn every burger into a memory.',
+    title: 'Bunbite Meal Experience',
+    duration: '0:48',
   },
   {
     id: 'hT_nvWreIhg',
     title: 'Behind The Kitchen',
-    desc: 'A peek inside the BunBite kitchen where the magic happens.',
+    duration: '1:02',
   },
   {
     id: 'ZJy1ajvMU1k',
     title: 'Customer Favorites',
-    desc: 'Real fans, real reactions — our most-loved burgers on camera.',
+    duration: '0:38',
   },
 ];
 
-/* ── Animation helpers ───────────────────────────────────────────────────── */
-const SPRING = { type: 'spring' as const, stiffness: 280, damping: 28, mass: 0.9 };
+/* ── Animation ───────────────────────────────────────────────────────────── */
+const SPRING = { type: 'spring' as const, stiffness: 260, damping: 28, mass: 0.9 };
 
 function cardAnim(offset: number) {
   const abs = Math.abs(offset);
   return {
-    x: `${offset * 76}%`,
-    scale: abs === 0 ? 1 : 0.74,
-    opacity: abs === 0 ? 1 : abs === 1 ? 0.48 : 0,
-    filter: abs === 0
-      ? 'blur(0px) brightness(1)'
-      : 'blur(1.5px) brightness(0.55)',
+    x: `${offset * 86}%`,
+    scale: abs === 0 ? 1 : 0.72,
+    opacity: abs === 0 ? 1 : abs === 1 ? 1 : 0,
+    rotateY: abs === 0 ? 0 : offset < 0 ? 16 : -16,
+    filter: abs === 0 ? 'brightness(1)' : 'brightness(0.82)',
   };
+}
+
+/* ── YouTube logo ────────────────────────────────────────────────────────── */
+function YTLogo({ size = 'sm' }: { size?: 'sm' | 'md' }) {
+  const w = size === 'md' ? 28 : 22;
+  const h = size === 'md' ? 20 : 16;
+  return (
+    <svg width={w} height={h} viewBox="0 0 28 20" fill="none">
+      <rect width="28" height="20" rx="5" fill="#FF0000" />
+      <polygon points="11,5 11,15 20,10" fill="white" />
+    </svg>
+  );
 }
 
 /* ── Thumbnail with fallback ─────────────────────────────────────────────── */
@@ -56,7 +64,6 @@ function VideoThumbnail({ id, title }: { id: string; title: string }) {
 
   const handleError = (e: React.SyntheticEvent<HTMLImageElement>) => {
     if (!triedMq.current) {
-      // Try medium-quality fallback first
       triedMq.current = true;
       (e.target as HTMLImageElement).src =
         `https://img.youtube.com/vi/${id}/mqdefault.jpg`;
@@ -67,11 +74,9 @@ function VideoThumbnail({ id, title }: { id: string; title: string }) {
 
   if (failed) {
     return (
-      <div className="w-full aspect-video bg-primary/10 flex flex-col items-center justify-center gap-3">
-        <Clapperboard className="w-10 h-10 sm:w-14 sm:h-14 text-primary/30" />
-        <p className="text-primary/40 text-xs sm:text-sm font-medium text-center px-4">
-          {title}
-        </p>
+      <div className="w-full aspect-video bg-gray-100 flex flex-col items-center justify-center gap-2">
+        <Clapperboard className="w-8 h-8 text-gray-300" />
+        <p className="text-gray-300 text-xs text-center px-2">{title}</p>
       </div>
     );
   }
@@ -99,15 +104,15 @@ export default function WhyBunBite() {
   );
 
   return (
-    <section id="about" className="py-24 bg-background overflow-hidden">
+    <section id="about" className="py-20 bg-background overflow-hidden">
       <div className="container mx-auto px-4">
 
-        {/* ── Header ── */}
+        {/* Header */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
-          className="text-center mb-14"
+          className="text-center mb-12"
         >
           <h2 className="font-display text-4xl md:text-5xl text-primary mb-4">
             WHAT MAKES BUNBITE DIFFERENT?
@@ -117,17 +122,19 @@ export default function WhyBunBite() {
           </p>
         </motion.div>
 
-        {/* ── Carousel ── */}
-        <div className="relative">
-          {/* Clipping wrapper */}
-          <div className="overflow-hidden">
-            <div className="relative h-[155px] sm:h-[210px] md:h-[290px] flex items-center justify-center">
+        {/* ── Carousel wrapper ── */}
+        <div className="relative px-10 sm:px-14">
 
+          {/* 3-D perspective stage */}
+          <div className="overflow-hidden" style={{ perspective: '1100px' }}>
+            <div
+              className="relative flex items-center justify-center"
+              style={{ height: 'clamp(220px, 40vw, 480px)' }}
+            >
               {VIDEOS.map((video, i) => {
                 let offset = i - activeIdx;
                 if (offset > n / 2) offset -= n;
                 if (offset < -n / 2) offset += n;
-
                 const isCenter = offset === 0;
 
                 return (
@@ -137,90 +144,130 @@ export default function WhyBunBite() {
                     style={{ zIndex: isCenter ? 10 : 5 }}
                   >
                     <motion.div
-                      className="w-[75%] sm:w-[58%] md:w-[52%] pointer-events-auto cursor-pointer"
+                      className="w-[72%] sm:w-[56%] md:w-[44%] pointer-events-auto"
                       animate={cardAnim(offset)}
                       transition={SPRING}
-                      whileHover={isCenter ? { y: -4, transition: { type: 'spring', stiffness: 300, damping: 20 } } : {}}
+                      style={{ transformStyle: 'preserve-3d', cursor: isCenter ? 'pointer' : 'pointer' }}
                       onClick={() => {
                         if (isCenter) setExpandedId(video.id);
                         else go(offset < 0 ? -1 : 1);
                       }}
                     >
-                      <div className="relative rounded-[22px] overflow-hidden shadow-[0_8px_32px_rgba(0,0,0,0.18)] hover:shadow-[0_16px_48px_rgba(0,0,0,0.28)] transition-shadow duration-300 group">
+                      {/* Card shell */}
+                      <div
+                        className="bg-white rounded-[20px] overflow-hidden"
+                        style={{
+                          boxShadow: isCenter
+                            ? '0 24px 64px rgba(0,0,0,0.16), 0 6px 24px rgba(0,0,0,0.10)'
+                            : '0 8px 28px rgba(0,0,0,0.13)',
+                        }}
+                      >
+                        {/* ── Thumbnail ── */}
+                        <div className="relative overflow-hidden">
+                          <VideoThumbnail id={video.id} title={video.title} />
 
-                        {/* Thumbnail with graceful fallback */}
-                        <VideoThumbnail id={video.id} title={video.title} />
-
-                        {/* Gradient overlay */}
-                        <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/15 to-transparent" />
-
-                        {/* Play button — center card only */}
-                        {isCenter && (
+                          {/* Play button */}
                           <div className="absolute inset-0 flex items-center justify-center">
                             <motion.div
-                              className="w-12 h-12 sm:w-16 sm:h-16 md:w-20 md:h-20 rounded-full bg-secondary/90 flex items-center justify-center shadow-2xl"
-                              whileHover={{ scale: 1.14 }}
-                              whileTap={{ scale: 0.9 }}
+                              className={`rounded-full flex items-center justify-center shadow-lg ${
+                                isCenter
+                                  ? 'w-10 h-10 sm:w-14 sm:h-14 bg-red-500'
+                                  : 'w-8 h-8 sm:w-11 sm:h-11 bg-black/40 backdrop-blur-sm border-2 border-white/70'
+                              }`}
+                              whileHover={{ scale: 1.1 }}
+                              whileTap={{ scale: 0.92 }}
                             >
-                              <Play className="w-5 h-5 sm:w-7 sm:h-7 md:w-8 md:h-8 text-secondary-foreground fill-secondary-foreground ml-0.5" />
+                              <Play
+                                className={`fill-white text-white ml-0.5 ${
+                                  isCenter
+                                    ? 'w-4 h-4 sm:w-5 sm:h-5'
+                                    : 'w-3 h-3 sm:w-4 sm:h-4'
+                                }`}
+                              />
                             </motion.div>
                           </div>
-                        )}
 
-                        {/* Caption — center card only */}
-                        {isCenter && (
-                          <div className="absolute bottom-0 left-0 right-0 p-3 sm:p-5">
-                            <h3 className="font-display text-base sm:text-xl md:text-2xl text-white leading-tight">
-                              {video.title}
-                            </h3>
-                            <p className="text-white/75 text-xs sm:text-sm mt-0.5 hidden sm:block">
-                              {video.desc}
-                            </p>
+                          {/* Duration badge */}
+                          <div className="absolute bottom-2 left-2 bg-black/65 text-white text-[10px] sm:text-[11px] px-1.5 py-0.5 rounded font-semibold tracking-wide">
+                            {video.duration}
                           </div>
-                        )}
+                        </div>
 
-                        {/* Hover ring */}
-                        {isCenter && (
-                          <div className="absolute inset-0 rounded-2xl ring-0 group-hover:ring-2 ring-secondary/60 transition-all duration-300 pointer-events-none" />
-                        )}
+                        {/* ── Below-thumbnail content ── */}
+                        <div className="px-3 pt-2 pb-2.5 sm:px-4 sm:pt-3 sm:pb-3.5">
+                          <h3
+                            className={`font-semibold text-gray-900 leading-snug ${
+                              isCenter
+                                ? 'text-sm sm:text-base md:text-[17px]'
+                                : 'text-[11px] sm:text-sm'
+                            }`}
+                          >
+                            {video.title}
+                          </h3>
+
+                          <div className="flex items-center justify-between mt-1.5 sm:mt-2 gap-2">
+                            {/* YouTube badge */}
+                            <div className="flex items-center gap-1.5 flex-shrink-0">
+                              <YTLogo size={isCenter ? 'md' : 'sm'} />
+                              <span className="text-[10px] sm:text-xs text-gray-400 font-medium">
+                                YouTube
+                              </span>
+                            </div>
+
+                            {/* Watch Now — center card only */}
+                            {isCenter && (
+                              <motion.button
+                                className="flex items-center gap-1 px-2.5 py-1 sm:px-3.5 sm:py-1.5 rounded-full border border-secondary text-secondary text-[10px] sm:text-xs font-semibold whitespace-nowrap hover:bg-secondary hover:text-secondary-foreground transition-colors"
+                                whileHover={{ scale: 1.04 }}
+                                whileTap={{ scale: 0.96 }}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setExpandedId(video.id);
+                                }}
+                              >
+                                Watch Now
+                                <Play className="w-2.5 h-2.5 fill-current" />
+                              </motion.button>
+                            )}
+                          </div>
+                        </div>
                       </div>
                     </motion.div>
                   </div>
                 );
               })}
-
             </div>
           </div>
 
           {/* Left arrow */}
           <button
             onClick={() => go(-1)}
-            className="absolute left-2 sm:left-3 top-1/2 -translate-y-1/2 z-20 w-9 h-9 sm:w-11 sm:h-11 rounded-full bg-primary text-white flex items-center justify-center shadow-lg hover:bg-primary/80 hover:scale-110 active:scale-95 transition-all"
+            className="absolute left-0 top-1/2 -translate-y-1/2 z-20 w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-white border border-gray-200 text-gray-500 flex items-center justify-center shadow-md hover:shadow-lg hover:scale-110 active:scale-95 transition-all"
             aria-label="Previous video"
           >
-            <ChevronLeft className="w-5 h-5 sm:w-6 sm:h-6" />
+            <ChevronLeft className="w-4 h-4 sm:w-5 sm:h-5" />
           </button>
 
           {/* Right arrow */}
           <button
             onClick={() => go(1)}
-            className="absolute right-2 sm:right-3 top-1/2 -translate-y-1/2 z-20 w-9 h-9 sm:w-11 sm:h-11 rounded-full bg-primary text-white flex items-center justify-center shadow-lg hover:bg-primary/80 hover:scale-110 active:scale-95 transition-all"
+            className="absolute right-0 top-1/2 -translate-y-1/2 z-20 w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-white border border-gray-200 text-gray-500 flex items-center justify-center shadow-md hover:shadow-lg hover:scale-110 active:scale-95 transition-all"
             aria-label="Next video"
           >
-            <ChevronRight className="w-5 h-5 sm:w-6 sm:h-6" />
+            <ChevronRight className="w-4 h-4 sm:w-5 sm:h-5" />
           </button>
         </div>
 
         {/* Dot indicators */}
-        <div className="flex items-center justify-center gap-2 mt-6">
+        <div className="flex items-center justify-center gap-2 mt-7">
           {VIDEOS.map((_, i) => (
             <button
               key={i}
               onClick={() => setActiveIdx(i)}
               className={`rounded-full transition-all duration-300 ${
                 i === activeIdx
-                  ? 'w-7 h-2.5 bg-secondary'
-                  : 'w-2.5 h-2.5 bg-primary/20 hover:bg-primary/40'
+                  ? 'w-4 h-2.5 bg-red-500'
+                  : 'w-2.5 h-2.5 bg-gray-300 hover:bg-gray-400'
               }`}
               aria-label={`Go to video ${i + 1}`}
             />
@@ -228,7 +275,7 @@ export default function WhyBunBite() {
         </div>
       </div>
 
-      {/* ── YouTube expand modal ── */}
+      {/* ── Expanded YouTube modal ── */}
       <AnimatePresence>
         {expandedId && (
           <motion.div
