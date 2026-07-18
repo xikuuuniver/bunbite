@@ -145,26 +145,184 @@ export const menuItems: MenuItem[] = [
   },
 ];
 
+export interface StockEvent {
+  id: string;
+  date: string;
+  action: 'Added' | 'Used' | 'Removed' | 'Wasted';
+  qty: number;
+  unit: string;
+  note: string;
+  by: string;
+}
+
 export interface InventoryItem {
   id: string;
   name: string;
+  productType: string;
   category: string;
   unit: string;
   stock: number;
   par: number;
+  minThreshold: number;
+  costPerUnit: number;
   supplier: string;
+  supplierContact: string;
+  barcode: string;
+  batchNumber: string;
+  expiryDate: string;
+  avgDailyUsage: number;
+  isArchived: boolean;
   updated: string;
+  createdAt: string;
+  stockHistory: StockEvent[];
 }
 
 export const inventoryItems: InventoryItem[] = [
-  { id: 'INV-101', name: 'Angus Beef Patties',   category: 'Meat',     unit: 'kg',  stock: 18,  par: 40, supplier: 'GreenFields Meats',   updated: '2h ago' },
-  { id: 'INV-102', name: 'Brioche Buns',         category: 'Bakery',   unit: 'pcs', stock: 220, par: 200,supplier: 'Village Bakery',       updated: '5h ago' },
-  { id: 'INV-103', name: 'Cheddar Cheese Slices',category: 'Dairy',    unit: 'pcs', stock: 64,  par: 150,supplier: 'DairyCo',              updated: '1h ago' },
-  { id: 'INV-104', name: 'Chicken Breast',       category: 'Poultry',  unit: 'kg',  stock: 32,  par: 35, supplier: 'GreenFields Meats',   updated: '3h ago' },
-  { id: 'INV-105', name: 'Mozzarella Block',     category: 'Dairy',    unit: 'kg',  stock: 9,   par: 25, supplier: 'DairyCo',              updated: '30m ago' },
-  { id: 'INV-106', name: 'Idaho Potatoes',       category: 'Produce',  unit: 'kg',  stock: 140, par: 120,supplier: 'Fresh Farms Co-op',    updated: '6h ago' },
-  { id: 'INV-107', name: 'Cola Syrup (5L)',      category: 'Beverage', unit: 'box', stock: 4,   par: 10, supplier: 'BevSupply',            updated: '1d ago' },
-  { id: 'INV-108', name: 'Cocoa Lava Mix',       category: 'Dessert',  unit: 'kg',  stock: 6,   par: 15, supplier: 'Sweet Source',         updated: '4h ago' },
+  {
+    id: 'INV-101', name: 'Angus Beef Patties', productType: 'Ingredient', category: 'Meat',
+    unit: 'kg', stock: 12, par: 40, minThreshold: 10, costPerUnit: 8.50,
+    supplier: 'GreenFields Meats', supplierContact: 'orders@greenfields.com', barcode: 'BB-M-101',
+    batchNumber: 'LOT-A1', expiryDate: 'Jul 25, 2026', avgDailyUsage: 3, isArchived: false,
+    updated: '2h ago', createdAt: 'Jun 1, 2026',
+    stockHistory: [
+      { id: 'EV-001', date: 'Jul 18, 08:00', action: 'Used',    qty: 4,  unit: 'kg', note: 'Lunch service', by: 'Marcus B.' },
+      { id: 'EV-002', date: 'Jul 17, 18:00', action: 'Used',    qty: 5,  unit: 'kg', note: 'Dinner service', by: 'Marcus B.' },
+      { id: 'EV-003', date: 'Jul 17, 09:00', action: 'Added',   qty: 10, unit: 'kg', note: 'Morning delivery', by: 'Priya A.' },
+      { id: 'EV-004', date: 'Jul 16, 19:00', action: 'Wasted',  qty: 1,  unit: 'kg', note: 'Quality issue', by: 'Marcus B.' },
+    ],
+  },
+  {
+    id: 'INV-102', name: 'Brioche Buns', productType: 'Ingredient', category: 'Bakery',
+    unit: 'pcs', stock: 220, par: 200, minThreshold: 50, costPerUnit: 0.80,
+    supplier: 'Village Bakery', supplierContact: 'supply@villagebakery.com', barcode: 'BB-B-102',
+    batchNumber: 'LOT-B2', expiryDate: 'Jul 22, 2026', avgDailyUsage: 25, isArchived: false,
+    updated: '5h ago', createdAt: 'Jun 1, 2026',
+    stockHistory: [
+      { id: 'EV-005', date: 'Jul 18, 07:30', action: 'Added',  qty: 100, unit: 'pcs', note: 'Daily bread order', by: 'Priya A.' },
+      { id: 'EV-006', date: 'Jul 17, 21:00', action: 'Used',   qty: 80,  unit: 'pcs', note: 'Full day service', by: 'Marcus B.' },
+      { id: 'EV-007', date: 'Jul 16, 21:00', action: 'Used',   qty: 75,  unit: 'pcs', note: 'Full day service', by: 'Marcus B.' },
+    ],
+  },
+  {
+    id: 'INV-103', name: 'Cheddar Cheese Slices', productType: 'Ingredient', category: 'Dairy',
+    unit: 'pcs', stock: 64, par: 150, minThreshold: 80, costPerUnit: 0.45,
+    supplier: 'DairyCo', supplierContact: 'orders@dairyco.com', barcode: 'BB-D-103',
+    batchNumber: 'LOT-C3', expiryDate: 'Jul 30, 2026', avgDailyUsage: 20, isArchived: false,
+    updated: '1h ago', createdAt: 'Jun 1, 2026',
+    stockHistory: [
+      { id: 'EV-008', date: 'Jul 18, 09:00', action: 'Used',   qty: 30, unit: 'pcs', note: 'Lunch prep', by: 'Marcus B.' },
+      { id: 'EV-009', date: 'Jul 17, 20:00', action: 'Used',   qty: 25, unit: 'pcs', note: 'Dinner service', by: 'Marcus B.' },
+      { id: 'EV-010', date: 'Jul 16, 08:00', action: 'Added',  qty: 50, unit: 'pcs', note: 'Weekly restock', by: 'Priya A.' },
+    ],
+  },
+  {
+    id: 'INV-104', name: 'Chicken Breast', productType: 'Ingredient', category: 'Poultry',
+    unit: 'kg', stock: 30, par: 35, minThreshold: 8, costPerUnit: 7.20,
+    supplier: 'GreenFields Meats', supplierContact: 'orders@greenfields.com', barcode: 'BB-M-104',
+    batchNumber: 'LOT-A2', expiryDate: 'Jul 21, 2026', avgDailyUsage: 4, isArchived: false,
+    updated: '3h ago', createdAt: 'Jun 1, 2026',
+    stockHistory: [
+      { id: 'EV-011', date: 'Jul 18, 10:00', action: 'Used',   qty: 4,  unit: 'kg', note: 'Lunch service', by: 'Marcus B.' },
+      { id: 'EV-012', date: 'Jul 18, 07:00', action: 'Added',  qty: 15, unit: 'kg', note: 'Morning delivery', by: 'Priya A.' },
+      { id: 'EV-013', date: 'Jul 17, 20:00', action: 'Used',   qty: 5,  unit: 'kg', note: 'Dinner service', by: 'Marcus B.' },
+    ],
+  },
+  {
+    id: 'INV-105', name: 'Mozzarella Block', productType: 'Ingredient', category: 'Dairy',
+    unit: 'kg', stock: 9, par: 25, minThreshold: 12, costPerUnit: 6.80,
+    supplier: 'DairyCo', supplierContact: 'orders@dairyco.com', barcode: 'BB-D-105',
+    batchNumber: 'LOT-C4', expiryDate: 'Jul 28, 2026', avgDailyUsage: 2, isArchived: false,
+    updated: '30m ago', createdAt: 'Jun 5, 2026',
+    stockHistory: [
+      { id: 'EV-014', date: 'Jul 18, 09:00', action: 'Used',  qty: 3, unit: 'kg', note: 'Pizza prep', by: 'Marcus B.' },
+      { id: 'EV-015', date: 'Jul 17, 09:00', action: 'Used',  qty: 2, unit: 'kg', note: 'Pizza prep', by: 'Marcus B.' },
+      { id: 'EV-016', date: 'Jul 15, 08:00', action: 'Added', qty: 8, unit: 'kg', note: 'Weekly delivery', by: 'Priya A.' },
+    ],
+  },
+  {
+    id: 'INV-106', name: 'Idaho Potatoes', productType: 'Ingredient', category: 'Produce',
+    unit: 'kg', stock: 140, par: 120, minThreshold: 30, costPerUnit: 1.10,
+    supplier: 'Fresh Farms Co-op', supplierContact: 'freshfarms@coop.com', barcode: 'BB-P-106',
+    batchNumber: 'LOT-F1', expiryDate: 'Aug 10, 2026', avgDailyUsage: 15, isArchived: false,
+    updated: '6h ago', createdAt: 'Jun 1, 2026',
+    stockHistory: [
+      { id: 'EV-017', date: 'Jul 18, 07:00', action: 'Added', qty: 50, unit: 'kg', note: 'Weekly farm delivery', by: 'Priya A.' },
+      { id: 'EV-018', date: 'Jul 17, 21:00', action: 'Used',  qty: 14, unit: 'kg', note: 'Full day fries', by: 'Marcus B.' },
+      { id: 'EV-019', date: 'Jul 16, 21:00', action: 'Used',  qty: 16, unit: 'kg', note: 'Full day fries', by: 'Marcus B.' },
+    ],
+  },
+  {
+    id: 'INV-107', name: 'Cola Syrup (5L)', productType: 'Beverage', category: 'Beverage',
+    unit: 'box', stock: 4, par: 10, minThreshold: 5, costPerUnit: 22.00,
+    supplier: 'BevSupply', supplierContact: 'orders@bevsupply.com', barcode: 'BB-BV-107',
+    batchNumber: 'LOT-G1', expiryDate: 'Dec 1, 2026', avgDailyUsage: 1, isArchived: false,
+    updated: '1d ago', createdAt: 'Jun 1, 2026',
+    stockHistory: [
+      { id: 'EV-020', date: 'Jul 17, 21:00', action: 'Used',   qty: 1, unit: 'box', note: 'Daily consumption', by: 'Jamal C.' },
+      { id: 'EV-021', date: 'Jul 16, 21:00', action: 'Used',   qty: 1, unit: 'box', note: 'Daily consumption', by: 'Jamal C.' },
+      { id: 'EV-022', date: 'Jul 14, 09:00', action: 'Added',  qty: 5, unit: 'box', note: 'Restock order', by: 'Priya A.' },
+    ],
+  },
+  {
+    id: 'INV-108', name: 'Cocoa Lava Mix', productType: 'Ingredient', category: 'Dessert',
+    unit: 'kg', stock: 6, par: 15, minThreshold: 3, costPerUnit: 9.50,
+    supplier: 'Sweet Source', supplierContact: 'orders@sweetsource.com', barcode: 'BB-DS-108',
+    batchNumber: 'LOT-S1', expiryDate: 'Sep 15, 2026', avgDailyUsage: 1, isArchived: false,
+    updated: '4h ago', createdAt: 'Jun 10, 2026',
+    stockHistory: [
+      { id: 'EV-023', date: 'Jul 18, 09:00', action: 'Used',  qty: 1, unit: 'kg', note: 'Dessert service', by: 'Marcus B.' },
+      { id: 'EV-024', date: 'Jul 17, 09:00', action: 'Used',  qty: 1, unit: 'kg', note: 'Dessert service', by: 'Marcus B.' },
+      { id: 'EV-025', date: 'Jul 15, 08:00', action: 'Added', qty: 5, unit: 'kg', note: 'Bi-weekly restock', by: 'Priya A.' },
+    ],
+  },
+  {
+    id: 'INV-109', name: 'Tomato Sauce (can)', productType: 'Ingredient', category: 'Condiments',
+    unit: 'cans', stock: 22, par: 60, minThreshold: 12, costPerUnit: 3.20,
+    supplier: 'Fresh Farms Co-op', supplierContact: 'freshfarms@coop.com', barcode: 'BB-C-109',
+    batchNumber: 'LOT-F2', expiryDate: 'Nov 30, 2026', avgDailyUsage: 3, isArchived: false,
+    updated: '3h ago', createdAt: 'Jun 5, 2026',
+    stockHistory: [
+      { id: 'EV-026', date: 'Jul 18, 10:00', action: 'Used',   qty: 4, unit: 'cans', note: 'Pizza sauce prep', by: 'Marcus B.' },
+      { id: 'EV-027', date: 'Jul 17, 10:00', action: 'Used',   qty: 3, unit: 'cans', note: 'Pizza sauce prep', by: 'Marcus B.' },
+      { id: 'EV-028', date: 'Jul 16, 08:00', action: 'Added',  qty: 12, unit: 'cans', note: 'Weekly restock', by: 'Priya A.' },
+    ],
+  },
+  {
+    id: 'INV-110', name: 'Sesame Seeds', productType: 'Ingredient', category: 'Spices & Dry',
+    unit: 'kg', stock: 9, par: 10, minThreshold: 2, costPerUnit: 4.00,
+    supplier: 'Sweet Source', supplierContact: 'orders@sweetsource.com', barcode: 'BB-SD-110',
+    batchNumber: 'LOT-S2', expiryDate: 'Mar 1, 2027', avgDailyUsage: 0.5, isArchived: false,
+    updated: 'Yesterday', createdAt: 'Jun 1, 2026',
+    stockHistory: [
+      { id: 'EV-029', date: 'Jul 17, 10:00', action: 'Used',  qty: 0.5, unit: 'kg', note: 'Bun garnish', by: 'Marcus B.' },
+      { id: 'EV-030', date: 'Jul 10, 09:00', action: 'Added', qty: 5,   unit: 'kg', note: 'Monthly restock', by: 'Priya A.' },
+    ],
+  },
+  {
+    id: 'INV-111', name: 'Iceberg Lettuce', productType: 'Ingredient', category: 'Produce',
+    unit: 'heads', stock: 8, par: 30, minThreshold: 10, costPerUnit: 1.50,
+    supplier: 'Fresh Farms Co-op', supplierContact: 'freshfarms@coop.com', barcode: 'BB-P-111',
+    batchNumber: 'LOT-F3', expiryDate: 'Jul 20, 2026', avgDailyUsage: 4, isArchived: false,
+    updated: '1h ago', createdAt: 'Jun 10, 2026',
+    stockHistory: [
+      { id: 'EV-031', date: 'Jul 18, 09:00', action: 'Used',   qty: 5,  unit: 'heads', note: 'Burger garnish prep', by: 'Marcus B.' },
+      { id: 'EV-032', date: 'Jul 18, 07:00', action: 'Added',  qty: 10, unit: 'heads', note: 'Morning delivery', by: 'Priya A.' },
+      { id: 'EV-033', date: 'Jul 17, 20:00', action: 'Used',   qty: 8,  unit: 'heads', note: 'Full day service', by: 'Marcus B.' },
+      { id: 'EV-034', date: 'Jul 17, 07:00', action: 'Wasted', qty: 2,  unit: 'heads', note: 'Wilted / spoiled', by: 'Marcus B.' },
+    ],
+  },
+  {
+    id: 'INV-112', name: 'Vanilla Soft Serve Mix', productType: 'Ingredient', category: 'Dessert',
+    unit: 'kg', stock: 18, par: 30, minThreshold: 6, costPerUnit: 11.00,
+    supplier: 'Sweet Source', supplierContact: 'orders@sweetsource.com', barcode: 'BB-DS-112',
+    batchNumber: 'LOT-S3', expiryDate: 'Aug 5, 2026', avgDailyUsage: 2, isArchived: false,
+    updated: '2h ago', createdAt: 'Jun 10, 2026',
+    stockHistory: [
+      { id: 'EV-035', date: 'Jul 18, 09:00', action: 'Used',   qty: 2, unit: 'kg', note: 'Dessert service', by: 'Marcus B.' },
+      { id: 'EV-036', date: 'Jul 17, 09:00', action: 'Used',   qty: 2, unit: 'kg', note: 'Dessert service', by: 'Marcus B.' },
+      { id: 'EV-037', date: 'Jul 16, 08:00', action: 'Added',  qty: 10, unit: 'kg', note: 'Bi-weekly restock', by: 'Priya A.' },
+    ],
+  },
 ];
 
 export interface Customer {
