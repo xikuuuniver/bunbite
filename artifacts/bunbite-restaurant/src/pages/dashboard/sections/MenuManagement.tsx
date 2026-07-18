@@ -32,7 +32,8 @@ export default function MenuManagement() {
     i.name.toLowerCase().includes(query.toLowerCase()),
   );
 
-  // Group by category name; preserve order from CategoryContext, then append ungrouped
+  // Build display groups — always show all active categories (including empty ones
+  // when no search query is active), ordered by CategoryContext displayOrder.
   const grouped = useMemo(() => {
     const map = new Map<string, MenuItem[]>();
     for (const item of filtered) {
@@ -40,18 +41,39 @@ export default function MenuManagement() {
       map.get(item.category)!.push(item);
     }
 
-    // Sort groups by displayOrder from CategoryContext; unknowns go last
-    const categoryOrder = categories.map((c) => c.name);
-    const entries = Array.from(map.entries()).sort(([a], [b]) => {
-      const ai = categoryOrder.indexOf(a);
-      const bi = categoryOrder.indexOf(b);
-      if (ai === -1 && bi === -1) return a.localeCompare(b);
-      if (ai === -1) return 1;
-      if (bi === -1) return -1;
-      return ai - bi;
-    });
-    return entries;
-  }, [filtered, categories]);
+    const activeCategories = categories
+      .filter((c) => c.status === 'Active')
+      .sort((a, b) => a.displayOrder - b.displayOrder);
+
+    // When searching: only show categories that have matching items
+    // When not searching: show all active categories (so newly created ones appear)
+    const result: Array<{ name: string; icon?: string; color?: string; items: MenuItem[] }> = [];
+
+    if (query.trim()) {
+      for (const cat of activeCategories) {
+        const catItems = map.get(cat.name) ?? [];
+        if (catItems.length > 0) result.push({ name: cat.name, icon: cat.icon, color: cat.color, items: catItems });
+      }
+      // Append items whose category isn't in CategoryContext
+      for (const [catName, catItems] of map.entries()) {
+        if (!activeCategories.find((c) => c.name === catName)) {
+          result.push({ name: catName, icon: undefined, color: undefined, items: catItems });
+        }
+      }
+    } else {
+      for (const cat of activeCategories) {
+        result.push({ name: cat.name, icon: cat.icon, color: cat.color, items: map.get(cat.name) ?? [] });
+      }
+      // Append orphaned items whose category isn't in CategoryContext
+      for (const [catName, catItems] of map.entries()) {
+        if (!activeCategories.find((c) => c.name === catName)) {
+          result.push({ name: catName, icon: undefined, color: undefined, items: catItems });
+        }
+      }
+    }
+
+    return result;
+  }, [filtered, categories, query]);
 
   const toggleAvailability = (id: string) => {
     const item = items.find((i) => i.id === id);
@@ -116,15 +138,27 @@ export default function MenuManagement() {
       )}
 
       <div className="space-y-8">
-        {grouped.map(([category, categoryItems]) => (
+        {grouped.map(({ name: category, icon: catIcon, color: catColor, items: categoryItems }) => (
           <section key={category}>
             <div className="flex items-center gap-3 mb-4">
-              <h2 className="text-sm font-semibold text-foreground tracking-wide uppercase">{category}</h2>
+              {catIcon && <span className="text-base leading-none">{catIcon}</span>}
+              <h2
+                className="text-sm font-semibold tracking-wide uppercase"
+                style={{ color: catColor || undefined }}
+              >
+                {category}
+              </h2>
               <span className="text-xs text-muted-foreground font-medium">
                 {categoryItems.length} {categoryItems.length === 1 ? 'item' : 'items'}
               </span>
               <div className="flex-1 h-px bg-border" />
             </div>
+
+            {categoryItems.length === 0 && (
+              <p className="text-sm text-muted-foreground italic py-4 pl-1">
+                No recipes in this category yet — add one using <strong>New → Add Recipe</strong>.
+              </p>
+            )}
 
             <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
               {categoryItems.map((item, i) => (

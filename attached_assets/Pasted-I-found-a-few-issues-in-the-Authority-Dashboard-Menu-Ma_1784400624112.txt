@@ -1,0 +1,55 @@
+I found a few issues in the **Authority Dashboard → Menu Management** section that need to be fixed.
+
+### Bug Fix 1 – Category Synchronization
+
+Currently, when a new category is created, it appears correctly in the customer-facing **Discover Our Menu** section, but it is **not properly reflected inside the Menu Management dashboard**.
+
+Please fix this so that:
+
+* Every newly created category is instantly displayed in the **Menu Management** page.
+* No page refresh should be required.
+* Category creation, editing, deletion, and recipe assignment should stay fully synchronized between the dashboard and the customer website.
+* The dashboard should always display the latest category data.
+
+---
+
+### Improvement – Redesign the "Add Category" Popup
+
+The current **Add Category** popup is too simple and doesn't match the premium design of Bunbite One.
+
+Please redesign it with a more modern and attractive interface.
+
+The popup should include:
+
+* **Category Name**
+* **Short Description**
+* **Category Icon** (Optional)
+* **Category Color** (Optional)
+* **Category Preview Card** that updates live while typing
+* **Create** button
+* **Cancel** button
+
+---
+
+### Popup Design
+
+* Use a modern modal with rounded corners.
+* Add a clean header with a category icon and the title **"Create New Category"**.
+* Include subtle animations when the popup opens and closes.
+* Add proper spacing and premium typography.
+* Show validation messages if the category name is empty or already exists.
+* Disable the **Create** button until the required information is provided.
+
+---
+
+### After Creating a Category
+
+Once the administrator clicks **Create**:
+
+* The new category should immediately appear in the **Menu Management** dashboard.
+* The category should automatically become available when creating or editing recipes.
+* The category should instantly appear in the customer-facing **Discover Our Menu** section.
+* Recipes assigned to the category should automatically be grouped under it.
+* All changes should occur in real time without requiring a page reload.
+
+The entire experience should feel polished, responsive, and consistent with the premium Bunbite One dashboard.

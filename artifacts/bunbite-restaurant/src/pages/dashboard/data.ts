@@ -271,6 +271,7 @@ export interface Category {
   description: string;
   image?: string;   // URL or object-URL for uploaded images
   icon?: string;    // emoji
+  color?: string;   // accent color hex
   displayOrder: number;
   visible: boolean; // shown on customer-facing site
   status: 'Active' | 'Inactive';
