@@ -53,17 +53,19 @@ function Router() {
 function App() {
   return (
     <AuthProvider>
-      <MenuProvider>
-        <OrdersProvider>
-          <QueryClientProvider client={queryClient}>
-            <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, '')}>
-              <Router />
-            </WouterRouter>
-            <Toaster />
-            <DevToolkit />
-          </QueryClientProvider>
-        </OrdersProvider>
-      </MenuProvider>
+      <CategoryProvider>
+        <MenuProvider>
+          <OrdersProvider>
+            <QueryClientProvider client={queryClient}>
+              <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, '')}>
+                <Router />
+              </WouterRouter>
+              <Toaster />
+              <DevToolkit />
+            </QueryClientProvider>
+          </OrdersProvider>
+        </MenuProvider>
+      </CategoryProvider>
     </AuthProvider>
   );
 }

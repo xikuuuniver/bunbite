@@ -22,8 +22,9 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
-import { inventoryItems, menuItems, type InventoryItem, type IngredientLine } from '../data';
+import { inventoryItems, type InventoryItem, type IngredientLine } from '../data';
 import { useMenu } from '@/context/MenuContext';
+import { useCategories } from '@/context/CategoryContext';
 import {
   ImagePlus,
   X,
@@ -46,8 +47,6 @@ import { cn } from '@/lib/utils';
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 type RecipeStatus = 'Available' | "86'd";
-
-const MENU_CATEGORIES = Array.from(new Set(menuItems.map((m) => m.category))).sort();
 
 const ALLERGENS = [
   'Gluten', 'Dairy', 'Eggs', 'Nuts', 'Peanuts',
@@ -97,6 +96,7 @@ interface Props {
 export default function NewRecipeModal({ open, onOpenChange }: Props) {
   const { toast } = useToast();
   const { addMenuItem } = useMenu();
+  const { categories } = useCategories();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // ── Basic info ────────────────────────────────────────────────────────────
@@ -346,15 +346,18 @@ export default function NewRecipeModal({ open, onOpenChange }: Props) {
 
                 {/* Category + Price */}
                 <div className="grid grid-cols-2 gap-3">
-                  <Field label="Category" required>
+                  <Field label="Recipe Category" required>
                     <Select value={category} onValueChange={setCategory}>
                       <SelectTrigger>
                         <SelectValue placeholder="Select category" />
                       </SelectTrigger>
                       <SelectContent>
-                        {MENU_CATEGORIES.map((c) => (
-                          <SelectItem key={c} value={c}>{c}</SelectItem>
-                        ))}
+                        {categories
+                          .filter((c) => c.status === 'Active')
+                          .sort((a, b) => a.displayOrder - b.displayOrder)
+                          .map((c) => (
+                            <SelectItem key={c.id} value={c.name}>{c.name}</SelectItem>
+                          ))}
                       </SelectContent>
                     </Select>
                   </Field>

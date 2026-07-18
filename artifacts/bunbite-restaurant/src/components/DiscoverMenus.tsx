@@ -4,6 +4,7 @@ import { ChevronDown, ShoppingCart, Heart, Eye } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { useOrders } from '@/context/OrdersContext';
 import { useMenu } from '@/context/MenuContext';
+import { useCategories } from '@/context/CategoryContext';
 import ItemDetailModal from '@/components/ItemDetailModal';
 import { type MenuItem } from '@/pages/dashboard/data';
 
@@ -11,21 +12,23 @@ export default function DiscoverMenus() {
   const { user } = useAuth();
   const { buyItem, setPendingBuy, openLoginModal, toggleFavorite, isFavorite } = useOrders();
   const { menuItems } = useMenu();
+  const { visibleActiveCategories } = useCategories();
 
-  // Build categories from live menu data (exclude 86'd items for customers)
+  // Exclude 86'd items for customers
   const visibleItems = useMemo(
     () => menuItems.filter((i) => i.status !== "86'd"),
     [menuItems],
   );
 
+  // Build category tabs from CategoryContext (so newly created empty categories appear),
+  // then attach matching menu items for each category.
   const categories = useMemo(() => {
-    const map = new Map<string, MenuItem[]>();
-    for (const item of visibleItems) {
-      if (!map.has(item.category)) map.set(item.category, []);
-      map.get(item.category)!.push(item);
-    }
-    return Array.from(map.entries()).map(([name, items]) => ({ id: name, name: name.toUpperCase(), items }));
-  }, [visibleItems]);
+    return visibleActiveCategories.map((cat) => ({
+      id: cat.name,
+      name: cat.name.toUpperCase(),
+      items: visibleItems.filter((i) => i.category === cat.name),
+    }));
+  }, [visibleActiveCategories, visibleItems]);
 
   const [activeCategory, setActiveCategory] = useState<string>(() => categories[0]?.id ?? '');
   const [selectedItem, setSelectedItem] = useState<MenuItem | null>(null);
