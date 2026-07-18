@@ -1,5 +1,6 @@
 import { motion } from 'framer-motion';
 import PizzaHero from './PizzaHero';
+import PepsiCanHero from './PepsiCanHero';
 
 export default function HeroSection() {
   const scrollToMenu = () => {
@@ -9,22 +10,24 @@ export default function HeroSection() {
   return (
     <section id="home" className="relative pt-20 bg-primary overflow-hidden flex items-start lg:items-center lg:min-h-[100dvh]">
       <div className="container mx-auto px-4 grid lg:grid-cols-2 gap-8 lg:gap-12 items-center relative z-10 py-16 sm:py-20 lg:py-12 w-full">
-        <motion.div 
+
+        {/* ── Left: Text content ── */}
+        <motion.div
           initial={{ opacity: 0, x: -50 }}
           animate={{ opacity: 1, x: 0 }}
-          transition={{ duration: 0.8, ease: "easeOut" }}
+          transition={{ duration: 0.8, ease: 'easeOut' }}
           className="text-center lg:text-left flex flex-col items-center lg:items-start"
         >
-          <motion.h1 
+          <motion.h1
             className="font-display text-5xl md:text-7xl lg:text-8xl text-white leading-tight mb-6 transform -rotate-2"
             initial={{ scale: 0.9, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             transition={{ delay: 0.2, duration: 0.6, type: 'spring' }}
           >
-            DELICIOUS<br/>
+            DELICIOUS<br />
             <span className="text-secondary">BURGERS</span>
           </motion.h1>
-          <motion.p 
+          <motion.p
             className="text-white/90 text-lg md:text-xl mb-8 max-w-md font-medium"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -32,20 +35,20 @@ export default function HeroSection() {
           >
             Handcrafted burgers made with the freshest ingredients and boldest flavors.
           </motion.p>
-          <motion.div 
+          <motion.div
             className="flex flex-col sm:flex-row gap-4 w-full sm:w-auto"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.6 }}
           >
-            <button 
+            <button
               onClick={() => document.getElementById('reserve')?.scrollIntoView({ behavior: 'smooth' })}
               className="bg-secondary text-secondary-foreground px-8 py-4 rounded-full font-bold text-lg transition-transform hover:scale-105 hover:shadow-xl active:scale-95"
               data-testid="button-hero-order"
             >
               Order Now
             </button>
-            <button 
+            <button
               onClick={scrollToMenu}
               className="bg-transparent border-2 border-white text-white px-8 py-4 rounded-full font-bold text-lg transition-all hover:bg-white/10 hover:scale-105 active:scale-95"
               data-testid="button-hero-menu"
@@ -55,7 +58,19 @@ export default function HeroSection() {
           </motion.div>
         </motion.div>
 
-        <PizzaHero />
+        {/* ── Right: Pepsi can + Pizza ── */}
+        <div className="flex items-center justify-center gap-4 sm:gap-6 lg:gap-8 w-full">
+          {/* Pepsi can — left of pizza, vertically centred, slightly lower for natural look */}
+          <div className="flex items-end justify-center pb-8 sm:pb-12">
+            <PepsiCanHero />
+          </div>
+
+          {/* Pizza — right, dominant */}
+          <div className="flex-1 min-w-0 max-w-[340px] sm:max-w-[380px] lg:max-w-[420px]">
+            <PizzaHero />
+          </div>
+        </div>
+
       </div>
     </section>
   );
