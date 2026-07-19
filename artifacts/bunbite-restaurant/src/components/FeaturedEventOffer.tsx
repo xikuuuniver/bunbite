@@ -18,7 +18,7 @@ import { useOrders } from '@/context/OrdersContext';
 import { useToast } from '@/hooks/use-toast';
 
 import argentinaPlayer from '@/assets/player-argentina.png';
-import spainPlayer     from '@/assets/player-spain.jpg';
+import spainPlayer     from '@/assets/player-spain.png';
 
 /* ─── config ─────────────────────────────────────────────────────── */
 const PROMO_CODE   = 'FIFA2026';
@@ -71,7 +71,7 @@ function FloatingBall({
   return (
     <motion.div
       className="absolute pointer-events-none"
-      style={{ left: x, top: y }}
+      style={{ left: x, top: y, zIndex: 2 }}
       animate={{ y: [0, -16, 0], rotate: [0, 180 * dir, 360 * dir] }}
       transition={{ duration, delay, repeat: Infinity, ease: 'easeInOut' }}
       aria-hidden
@@ -231,50 +231,48 @@ export default function FeaturedEventOffer() {
                   <FloatingBall x="70%" y="60%" size={20} delay={1.3} duration={4.2} dir={-1} />
                   <FloatingBall x="14%" y="70%" size={38} delay={0.6} duration={6.8} />
 
-                  {/* Player photo — transparent PNG, facing centre */}
-                  <img
-                    src={argentinaPlayer}
-                    alt="Argentina player"
-                    draggable={false}
-                    className="absolute bottom-0 right-0 md:right-[-8%] select-none pointer-events-none"
-                    style={{
-                      height: '92%',
-                      objectFit: 'contain',
-                      objectPosition: 'bottom center',
-                      maskImage:
-                        'linear-gradient(to top, transparent 0%, black 6%, black 88%, transparent 100%)',
-                      WebkitMaskImage:
-                        'linear-gradient(to top, transparent 0%, black 6%, black 88%, transparent 100%)',
-                      filter: 'drop-shadow(-10px 2px 28px rgba(116,172,223,0.55))',
-                    }}
-                  />
-
-                  {/* Stars + number (layered behind player) */}
-                  <div className="relative z-10 flex flex-col items-center pointer-events-none select-none">
+                  {/* Jersey number — sits behind the player (z-10) */}
+                  <div className="absolute inset-0 flex flex-col items-center justify-center z-10 pointer-events-none select-none">
                     <div className="flex gap-0.5 mb-1">
                       {[0,1,2].map(i => <Star key={i} size={10} className="fill-yellow-400 text-yellow-400" />)}
                     </div>
                     <div
                       className="font-black leading-none"
                       style={{
-                        fontSize: 'clamp(58px, 9vw, 110px)',
+                        fontSize: 'clamp(72px, 11vw, 136px)',
                         color: 'transparent',
-                        WebkitTextStroke: '1.5px rgba(116,172,223,0.6)',
-                        textShadow: '0 0 50px rgba(116,172,223,0.2)',
+                        WebkitTextStroke: '1.5px rgba(116,172,223,0.55)',
+                        textShadow: '0 0 60px rgba(116,172,223,0.22)',
+                        opacity: 0.85,
                       }}
                     >
                       10
                     </div>
-                    <p className="font-black tracking-[0.28em] uppercase text-white/40 mt-0.5"
+                    <p className="font-black tracking-[0.28em] uppercase text-white/35 mt-1"
                        style={{ fontSize: 'clamp(9px, 1.3vw, 12px)' }}>
                       Argentina
                     </p>
                   </div>
 
+                  {/* Player photo — properly transparent PNG (z-20, in front of number) */}
+                  <img
+                    src={argentinaPlayer}
+                    alt="Messi — Argentina"
+                    draggable={false}
+                    className="absolute bottom-0 right-0 md:right-[-4%] select-none pointer-events-none z-20"
+                    style={{
+                      height: '96%',
+                      width: 'auto',
+                      objectFit: 'contain',
+                      objectPosition: 'bottom right',
+                      filter: 'drop-shadow(-14px 0px 32px rgba(116,172,223,0.7)) drop-shadow(0px -4px 20px rgba(116,172,223,0.25))',
+                    }}
+                  />
+
                   {/* Blue glow */}
-                  <div className="absolute bottom-0 right-0 pointer-events-none" style={{
-                    width: 260, height: 260, borderRadius: '50%',
-                    background: 'radial-gradient(circle, rgba(116,172,223,0.18) 0%, transparent 70%)',
+                  <div className="absolute bottom-0 right-0 pointer-events-none z-0" style={{
+                    width: 280, height: 280, borderRadius: '50%',
+                    background: 'radial-gradient(circle, rgba(116,172,223,0.2) 0%, transparent 70%)',
                     transform: 'translate(35%, 35%)',
                   }} />
                 </div>
@@ -402,48 +400,46 @@ export default function FeaturedEventOffer() {
                   <FloatingBall x="10%" y="56%" size={34} delay={1.8} duration={5.9} dir={-1} />
                   <FloatingBall x="60%" y="68%" size={18} delay={1.0} duration={7.2} />
 
-                  {/* Player photo — JPEG with white bg; radial mask hides the edges */}
-                  <img
-                    src={spainPlayer}
-                    alt="Spain player"
-                    draggable={false}
-                    className="absolute bottom-0 left-0 md:left-[-8%] select-none pointer-events-none"
-                    style={{
-                      height: '88%',
-                      objectFit: 'contain',
-                      objectPosition: 'bottom center',
-                      maskImage:
-                        'radial-gradient(ellipse 78% 90% at 50% 52%, black 36%, transparent 74%)',
-                      WebkitMaskImage:
-                        'radial-gradient(ellipse 78% 90% at 50% 52%, black 36%, transparent 74%)',
-                      filter: 'drop-shadow(10px 2px 24px rgba(162,36,213,0.6)) saturate(1.12)',
-                    }}
-                  />
-
-                  {/* Star + number (behind player) */}
-                  <div className="relative z-10 flex flex-col items-center pointer-events-none select-none">
+                  {/* Jersey number — sits behind the player (z-10) */}
+                  <div className="absolute inset-0 flex flex-col items-center justify-center z-10 pointer-events-none select-none">
                     <Star size={10} className="fill-yellow-400 text-yellow-400 mb-1" />
                     <div
                       className="font-black leading-none"
                       style={{
-                        fontSize: 'clamp(58px, 9vw, 110px)',
+                        fontSize: 'clamp(72px, 11vw, 136px)',
                         color: 'transparent',
-                        WebkitTextStroke: '1.5px rgba(253,224,71,0.6)',
-                        textShadow: '0 0 50px rgba(253,224,71,0.18)',
+                        WebkitTextStroke: '1.5px rgba(253,224,71,0.55)',
+                        textShadow: '0 0 60px rgba(253,224,71,0.2)',
+                        opacity: 0.85,
                       }}
                     >
                       19
                     </div>
-                    <p className="font-black tracking-[0.28em] uppercase text-white/40 mt-0.5"
+                    <p className="font-black tracking-[0.28em] uppercase text-white/35 mt-1"
                        style={{ fontSize: 'clamp(9px, 1.3vw, 12px)' }}>
                       España
                     </p>
                   </div>
 
+                  {/* Player photo — properly transparent PNG (z-20, in front of number) */}
+                  <img
+                    src={spainPlayer}
+                    alt="Lamine Yamal — Spain"
+                    draggable={false}
+                    className="absolute bottom-0 left-0 md:left-[-4%] select-none pointer-events-none z-20"
+                    style={{
+                      height: '96%',
+                      width: 'auto',
+                      objectFit: 'contain',
+                      objectPosition: 'bottom left',
+                      filter: 'drop-shadow(14px 0px 32px rgba(162,36,213,0.7)) drop-shadow(0px -4px 20px rgba(162,36,213,0.25)) saturate(1.15)',
+                    }}
+                  />
+
                   {/* Violet glow */}
-                  <div className="absolute bottom-0 left-0 pointer-events-none" style={{
-                    width: 260, height: 260, borderRadius: '50%',
-                    background: 'radial-gradient(circle, rgba(196,30,58,0.14) 0%, transparent 70%)',
+                  <div className="absolute bottom-0 left-0 pointer-events-none z-0" style={{
+                    width: 280, height: 280, borderRadius: '50%',
+                    background: 'radial-gradient(circle, rgba(196,30,58,0.18) 0%, transparent 70%)',
                     transform: 'translate(-35%, 35%)',
                   }} />
                 </div>
