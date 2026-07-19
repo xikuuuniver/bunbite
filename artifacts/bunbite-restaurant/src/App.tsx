@@ -15,6 +15,7 @@ import FeaturedEventOffer from '@/components/FeaturedEventOffer';
 import Testimonials from '@/components/Testimonials';
 import ReserveTable from '@/components/ReserveTable';
 import OpeningHours from '@/components/OpeningHours';
+import FranchiseSection from '@/components/FranchiseSection';
 import Footer from '@/components/Footer';
 import NotFound from '@/pages/not-found';
 import DashboardLayout from '@/pages/dashboard/DashboardLayout';
@@ -36,6 +37,7 @@ function Home() {
         <Testimonials />
         <ReserveTable />
         <OpeningHours />
+        <FranchiseSection />
       </main>
       <Footer />
     </div>
