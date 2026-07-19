@@ -8,6 +8,7 @@ import { Route, Switch, Router as WouterRouter } from 'wouter';
 import Navbar from '@/components/Navbar';
 import HeroSection from '@/components/HeroSection';
 import MarqueeTicker from '@/components/MarqueeTicker';
+import PartnersCarousel from '@/components/PartnersCarousel';
 import WhyBunBite from '@/components/WhyBunBite';
 import BestSellers from '@/components/BestSellers';
 import DiscoverMenus from '@/components/DiscoverMenus';
@@ -29,6 +30,7 @@ function Home() {
       <Navbar />
       <main className="flex-grow">
         <HeroSection />
+        <PartnersCarousel />
         <MarqueeTicker />
         <WhyBunBite />
         <BestSellers />
