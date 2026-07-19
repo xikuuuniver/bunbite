@@ -7,7 +7,6 @@ import { CategoryProvider } from '@/context/CategoryContext';
 import { Route, Switch, Router as WouterRouter } from 'wouter';
 import Navbar from '@/components/Navbar';
 import HeroSection from '@/components/HeroSection';
-import MarqueeTicker from '@/components/MarqueeTicker';
 import PartnersCarousel from '@/components/PartnersCarousel';
 import WhyBunBite from '@/components/WhyBunBite';
 import BestSellers from '@/components/BestSellers';
@@ -31,7 +30,6 @@ function Home() {
       <main className="flex-grow">
         <HeroSection />
         <PartnersCarousel />
-        <MarqueeTicker />
         <WhyBunBite />
         <BestSellers />
         <DiscoverMenus />
