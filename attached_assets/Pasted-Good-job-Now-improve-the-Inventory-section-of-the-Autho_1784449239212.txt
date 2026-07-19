@@ -1,0 +1,93 @@
+Good job! Now improve the **Inventory** section of the Authority Dashboard.
+
+### Overview Widgets
+
+Remove the existing widgets:
+
+* Tracked Items
+* Low Stock Alert
+* Fully Stocked
+
+Replace them with the following inventory summary widgets:
+
+* **Total Recorded Stock**
+* **Low Stock**
+* **Medium Stock**
+* **High Stock Need** (Items that require immediate restocking)
+
+Each widget should display the total number of items and include a small trend indicator showing whether the stock level has increased or decreased compared to the previous week.
+
+---
+
+### Inventory Categories
+
+Below the summary widgets, add filter categories:
+
+* **All Stock**
+* **Highly Wanted**
+* **Low Stock**
+* **Medium Stock**
+* **High Stock**
+
+Switching between these categories should instantly filter the inventory list without reloading the page.
+
+---
+
+### Inventory Listing
+
+Display the inventory in a modern, responsive table with the following columns:
+
+* Product Name
+* Product Type
+* Current Stock
+* Supplier
+* Total Expense
+* Last Updated
+* Actions
+
+The **Actions** column should include:
+
+* View Details
+* Edit
+* Add Stock
+* Reduce Stock
+* Stock History
+* Delete
+
+---
+
+### Additional Features
+
+Add the following professional inventory management features:
+
+* Search inventory by product name.
+* Filter by category.
+* Filter by stock level.
+* Sort by newest, oldest, highest stock, or lowest stock.
+* Bulk select multiple products.
+* Bulk update stock quantities.
+* Export inventory reports (CSV, Excel, PDF).
+* Import inventory from CSV or Excel.
+* Barcode and QR code support for each inventory item.
+* Automatic low-stock alerts.
+* Supplier management and supplier history.
+* Purchase history for every inventory item.
+* Stock movement history (Added, Used, Removed, Wasted).
+* Unit selection (kg, g, L, ml, pcs, bottles, packets, etc.).
+* Minimum stock threshold configuration.
+* Expiry date tracking for perishable ingredients.
+* Batch/Lot number tracking.
+* Inventory value calculation.
+* Daily, weekly, and monthly inventory reports.
+* Waste and damaged item tracking.
+* Inventory usage analytics.
+* Recent inventory activity timeline.
+* Quick Add Stock button.
+* Quick Scan barcode option.
+* Duplicate inventory item.
+* Archive inactive inventory items.
+* Real-time synchronization with recipes so ingredient quantities are automatically deducted whenever an order is confirmed.
+* Display a warning if a recipe cannot be prepared due to insufficient stock.
+* Show estimated days remaining before an ingredient runs out based on average usage.
+
+The entire Inventory Management system should have a modern, responsive, premium, and professional design that is suitable for restaurants of all sizes.
