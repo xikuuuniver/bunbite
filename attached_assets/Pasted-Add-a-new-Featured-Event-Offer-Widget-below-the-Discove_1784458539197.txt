@@ -1,0 +1,87 @@
+Add a new **Featured Event Offer Widget** below the **"Discover Our Menu"** section.
+
+Create a special promotional banner based on the **Argentina vs Spain FIFA World Cup event**.
+
+### Design Layout
+
+Create a large modern split-design offer card:
+
+### Left Side – Argentina Theme
+
+* Background: Premium dark blue gradient.
+* Add Argentina-related visuals.
+* Include a player image (example: Messi) with a clean background removal effect.
+* Add subtle football-themed animations.
+
+### Right Side – Spain Theme
+
+* Background: Purple/violet gradient.
+* Add Spain-related visuals.
+* Include a player image (example: Lamine Yamal) with a clean background removal effect.
+* Add matching football-themed animations.
+
+### Center Section
+
+In the middle of the banner:
+
+```
+FIFA World Cup
+Discord Offer
+
+Promo Code:
+FIFA2026
+```
+
+Make the title large, bold, and premium with a football event style.
+
+### Countdown Timer
+
+Below the promo code, add a live countdown:
+
+```
+Days : Hours : Minutes : Seconds
+```
+
+The countdown should automatically update every second and end when the offer expires.
+
+### Button
+
+Below the countdown:
+
+```
+[ Use Coupon ]
+```
+
+### User Interaction
+
+If a user is not logged in:
+
+* When they click **"Use Coupon"**, redirect them to the login page.
+* After successful login, automatically apply the coupon to their account.
+
+If a user is already logged in:
+
+* Clicking **"Use Coupon"** should instantly add the coupon to their account.
+* Show a success message:
+
+```
+Coupon FIFA2026 added successfully!
+```
+
+### Additional Features
+
+* Add smooth entrance animation when the widget appears.
+* Add hover effects on the button.
+* Make the banner fully responsive for desktop, tablet, and mobile.
+* Add an admin dashboard option to manage future event offers:
+
+  * Event title
+  * Images
+  * Background colors
+  * Promo code
+  * Discount amount
+  * Start date
+  * Expiry date
+  * Countdown timer
+
+The design should feel like a premium FIFA event campaign while matching the Bunbite website style.

@@ -11,6 +11,7 @@ import MarqueeTicker from '@/components/MarqueeTicker';
 import WhyBunBite from '@/components/WhyBunBite';
 import BestSellers from '@/components/BestSellers';
 import DiscoverMenus from '@/components/DiscoverMenus';
+import FeaturedEventOffer from '@/components/FeaturedEventOffer';
 import Testimonials from '@/components/Testimonials';
 import ReserveTable from '@/components/ReserveTable';
 import OpeningHours from '@/components/OpeningHours';
@@ -31,6 +32,7 @@ function Home() {
         <WhyBunBite />
         <BestSellers />
         <DiscoverMenus />
+        <FeaturedEventOffer />
         <Testimonials />
         <ReserveTable />
         <OpeningHours />

@@ -22,6 +22,7 @@ import AnalyticsReports from './sections/AnalyticsReports';
 import NotificationsSection from './sections/NotificationsSection';
 import ReviewsFeedback from './sections/ReviewsFeedback';
 import SettingsSection from './sections/SettingsSection';
+import EventOffers from './sections/EventOffers';
 
 const sectionComponents: Record<string, React.ComponentType> = {
   '': DashboardHome,
@@ -35,6 +36,7 @@ const sectionComponents: Record<string, React.ComponentType> = {
   payments: Payments,
   staff: StaffManagement,
   promotions: Promotions,
+  'event-offers': EventOffers,
   analytics: AnalyticsReports,
   notifications: NotificationsSection,
   reviews: ReviewsFeedback,

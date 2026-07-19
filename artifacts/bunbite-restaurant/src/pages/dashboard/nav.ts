@@ -1,7 +1,7 @@
 import {
   LayoutDashboard, Wallet, ShoppingCart, CalendarCheck, UtensilsCrossed,
   Boxes, Users, CreditCard, UserCog, BadgePercent,
-  BarChart3, MessageSquareHeart, Settings, type LucideIcon,
+  BarChart3, MessageSquareHeart, Settings, Trophy, type LucideIcon,
 } from 'lucide-react';
 
 export interface DashboardNavItem {
@@ -21,6 +21,7 @@ export const dashboardNav: DashboardNavItem[] = [
   { slug: 'payments',      label: 'Payments',              icon: CreditCard },
   { slug: 'staff',         label: 'Staff Management',      icon: UserCog },
   { slug: 'promotions',    label: 'Promotions',            icon: BadgePercent },
+  { slug: 'event-offers', label: 'Event Offers',          icon: Trophy },
   { slug: 'analytics',     label: 'Analytics & Reports',   icon: BarChart3 },
   { slug: 'reviews',       label: 'Reviews & Feedback',    icon: MessageSquareHeart },
   { slug: 'settings',      label: 'Settings',              icon: Settings },
