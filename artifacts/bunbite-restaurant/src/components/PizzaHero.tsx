@@ -1,138 +1,176 @@
+/**
+ * PizzaHero — interactive pizza with realistic cheese-pull on slice hover.
+ *
+ * Architecture
+ * ────────────
+ * z:0   Full pizza image (base) — always visible, fills any gap when a slice lifts
+ * z:1   Six clipped slice images — sit on top of base at rest, carry interactions
+ * z:5   SVG cheese-strand overlay — strands bridge gap → active slice, pointer-events:none
+ * z:10  The one active/hovered slice — rendered on top of strands
+ *
+ * Root cause of the old cheese bug
+ * ─────────────────────────────────
+ * Without the base image, gaps left by a moving slice exposed the raw background.
+ * Adjacent slices' images also bleed cheese along their edges — so the gap showed
+ * an ugly mix of background + neighbour cheese fragments.  Adding the z:0 base
+ * image fills any gap with the correct pizza texture, so the cheese appears to
+ * stretch naturally from the pizza body to the departing slice.
+ *
+ * Cheese strands
+ * ──────────────
+ * The SVG layer draws 4 taffy-shaped bezier bands per slice, anchored at the
+ * cut-line convergence point (≈ 24 % of pizza radius from the centre, right
+ * where the visible cut lines meet the cheese).  Strands taper from wide at
+ * the pizza side to narrow at the slice tip and shrink further as distance
+ * increases — mimicking how mozzarella stretches and thins before snapping.
+ * All SVG updates happen via direct setAttribute() in a requestAnimationFrame
+ * loop so zero React re-renders are triggered during animation.
+ */
+
 import { useRef, useState, useEffect } from 'react';
 import { motion, useMotionValue, animate } from 'framer-motion';
 // @ts-ignore
 import pizzaImg from '@/assets/chicken-pizza.png';
 
-/* ── Config ──────────────────────────────────────────────────── */
+/* ─────────────────────────── constants ─────────────────────────── */
+
 const NUM_SLICES  = 6;
-const FLOAT_DIST  = 24;   // px — how far a hovered slice lifts
-const GAP_AT_REST = 1.5;  // px — tiny separation between slices at rest
+const FLOAT_DIST  = 28;   // px — how far the hovered slice lifts
+const GAP_AT_REST = 1.5;  // px — tiny gap between slices at rest
 
-// Fixed SVG coordinate space (matches container max-width in CSS px)
-const SVG_SIZE = 420;
-const SVG_CX   = SVG_SIZE / 2;        // 210
-const SVG_CY   = SVG_SIZE / 2;        // 210
-const SVG_R    = SVG_SIZE * 0.46;     // pizza radius in SVG units ≈ 193
+/** Fixed SVG viewport (matches container max-width).  1 SVG unit ≈ 1 CSS px at max size. */
+const SZ  = 420;
+const CX  = SZ / 2;       // 210 — SVG centre X
+const CY  = SZ / 2;       // 210 — SVG centre Y
+/** Pizza radius as fraction of SZ — the circular image fills ~90 % of the square container */
+const PR  = SZ * 0.435;   // ≈ 183 px at max size
 
-// Cheese strand visual config
-const CHEESE_FILL    = '#F7E59E';     // warm mozzarella yellow
-const CHEESE_STROKE  = '#C9972A';     // slightly darker edge for depth
-const STRAND_OFFSETS = [-16, -6, 5, 15]; // degree offsets → 4 strands per slice
-const MIN_PULL_PX    = 2;             // px — below this, no strands rendered
-const MAX_STRAND_W   = 13;            // SVG units — width at the pizza-side base
+/** Cheese colour sampled from the pizza image (warm mozzarella). */
+const CHEESE_FILL   = '#F5E06A';
+const CHEESE_STROKE = '#C6920A';
 
-/* ── Geometry helpers ─────────────────────────────────────────── */
-function toRad(deg: number) { return (deg * Math.PI) / 180; }
+/** Degree offsets for the 4 strands spread across each slice face. */
+const STRAND_DEG = [-17, -6, 6, 17] as const;
 
-/** Build a CSS polygon clip-path for wedge slice `i`. */
-function buildClipPath(i: number): string {
-  const step     = 360 / NUM_SLICES;
-  const startDeg = i * step - 90;
-  const endDeg   = startDeg + step;
-  const R        = 120; // %-radius (can exceed 100; clipped by the element boundary)
-  const pts: string[] = ['50% 50%'];
-  for (let d = startDeg; d <= endDeg; d += 3) {
-    const r = toRad(d);
+/**
+ * Strand inner radius — how far from the pizza centre the strand anchors.
+ * Setting this near the cut-line convergence (≈ 24 %) makes strands look
+ * like they emerge right from where the slice cuts meet the cheese.
+ */
+const STRAND_INNER_R_FRAC = 0.24;
+
+/** Strand starts appearing after this many CSS px of displacement. */
+const SHOW_AFTER_PX = 3;
+
+/** Maximum strand width (SVG units) at the pizza-side base. */
+const MAX_W = 15;
+
+/* ─────────────────────────── geometry ──────────────────────────── */
+
+function rad(deg: number) { return (deg * Math.PI) / 180; }
+
+/** Build the CSS polygon() clip-path for wedge slice i. */
+function wedgeClip(i: number): string {
+  const step  = 360 / NUM_SLICES;
+  const start = i * step - 90;
+  const end   = start + step;
+  const R     = 120; // % — extends beyond element edge so boundary clips it
+  const pts   = ['50% 50%'];
+  for (let d = start; d <= end; d += 3) {
+    const r = rad(d);
     pts.push(`${(50 + R * Math.sin(r)).toFixed(2)}% ${(50 - R * Math.cos(r)).toFixed(2)}%`);
   }
-  const er = toRad(endDeg);
+  const er = rad(end);
   pts.push(`${(50 + R * Math.sin(er)).toFixed(2)}% ${(50 - R * Math.cos(er)).toFixed(2)}%`);
-  return `polygon(${pts.join(', ')})`;
+  return `polygon(${pts.join(',')})`;
 }
 
-/** Pre-computed per-slice geometry (stable across renders). */
+/** Pre-computed per-slice data (computed once at module level). */
 const SLICES = Array.from({ length: NUM_SLICES }, (_, i) => {
-  const step      = 360 / NUM_SLICES;
-  const centerDeg = i * step + step / 2 - 90;
-  const rad       = toRad(centerDeg);
+  const step  = 360 / NUM_SLICES;
+  const cDeg  = i * step + step / 2 - 90;   // centre angle of this wedge
+  const r     = rad(cDeg);
   return {
-    clipPath  : buildClipPath(i),
-    tx        : +(Math.sin(rad)  * FLOAT_DIST).toFixed(3),
-    ty        : +(-Math.cos(rad) * FLOAT_DIST).toFixed(3),
-    rxRest    : +(Math.sin(rad)  * GAP_AT_REST).toFixed(3),
-    ryRest    : +(-Math.cos(rad) * GAP_AT_REST).toFixed(3),
-    centerDeg,
+    clip   : wedgeClip(i),
+    tx     : +(Math.sin(r)  * FLOAT_DIST).toFixed(3),   // hover target x
+    ty     : +(-Math.cos(r) * FLOAT_DIST).toFixed(3),   // hover target y
+    rxRest : +(Math.sin(r)  * GAP_AT_REST).toFixed(3),  // rest x
+    ryRest : +(-Math.cos(r) * GAP_AT_REST).toFixed(3),  // rest y
+    cDeg,
   };
 });
 
-/* ── Cheese strand path builder ──────────────────────────────── */
+/* ──────────────────────── strand path builder ───────────────────── */
+
 /**
- * Returns the SVG `d` attribute for a single taffy-pull cheese strand.
+ * Returns the SVG `d` string for a single cheese strand — a filled bezier
+ * band that is wide at the pizza base, pinched at the waist, and narrow at
+ * the slice tip.
  *
- * The shape is a filled bezier band:
- *   – wide at the pizza base (cheese side)
- *   – pinched at the waist (middle of pull)
- *   – narrow at the slice tip (where it would snap)
- *
- * @param cx, cy   – SVG centre of the pizza
- * @param rad      – outward angle of this strand (radians)
- * @param innerR   – radius of the base anchor point (SVG units)
- * @param dx, dy   – slice displacement in SVG units
- * @param wBase    – strand half-width at the pizza base
+ * @param angleRad  outward direction of this strand
+ * @param innerR    base attachment radius from pizza centre (SVG units)
+ * @param dx, dy    slice displacement (SVG units)
+ * @param wBase     half-width at the pizza side base
  */
-function buildStrandPath(
-  cx: number, cy: number,
-  rad: number,
+function strandPath(
+  angleRad: number,
   innerR: number,
   dx: number, dy: number,
   wBase: number,
 ): string {
-  // Unit vectors: along the strand direction and perpendicular to it
-  const alX =  Math.sin(rad);
-  const alY = -Math.cos(rad);
-  const pX  =  Math.cos(rad);   // perpendicular (for width)
-  const pY  =  Math.sin(rad);
+  // Perpendicular unit vector (for strand width)
+  const px =  Math.cos(angleRad);
+  const py =  Math.sin(angleRad);
 
-  // Base anchor – on the stationary pizza body
-  const ax = cx + innerR * alX;
-  const ay = cy + innerR * alY;
+  // Base anchor point — on the stationary pizza at the cut-line zone
+  const ax = CX + innerR * Math.sin(angleRad);
+  const ay = CY - innerR * Math.cos(angleRad);
 
-  // Tip anchor – same pizza-relative point displaced with the slice
+  // Tip anchor — same pizza-relative point shifted with the slice
   const bx = ax + dx;
   const by = ay + dy;
 
-  // Control point at the mid-line
-  const midX = (ax + bx) / 2;
-  const midY = (ay + by) / 2;
+  // Midpoint (control point for Bezier curves)
+  const mx = (ax + bx) / 2;
+  const my = (ay + by) / 2;
 
-  // Width at each section
-  const wA = wBase;            // base (pizza side) — widest
-  const wM = wBase * 0.18;    // waist — narrowest
-  const wB = wBase * 0.28;    // tip (slice side) — still narrow
+  // Width at each zone: wide base → thin waist → narrow tip
+  const wA = wBase;
+  const wM = wBase * 0.16;  // waist
+  const wB = wBase * 0.30;  // tip
 
-  function pt(x: number, y: number) { return `${x.toFixed(2)},${y.toFixed(2)}`; }
+  const p = (x: number, y: number) => `${x.toFixed(2)},${y.toFixed(2)}`;
 
   return [
+    `M ${p(ax + px * wA,  ay + py * wA)}`,
     // Left edge: base → waist → tip
-    `M ${pt(ax + pX * wA, ay + pY * wA)}`,
-    `C ${pt(midX + pX * wM, midY + pY * wM)}`,
-    `  ${pt(midX + pX * wM, midY + pY * wM)}`,
-    `  ${pt(bx + pX * wB,   by + pY * wB)}`,
-    // Right edge: tip → waist → base (closing the band)
-    `L ${pt(bx - pX * wB,   by - pY * wB)}`,
-    `C ${pt(midX - pX * wM, midY - pY * wM)}`,
-    `  ${pt(midX - pX * wM, midY - pY * wM)}`,
-    `  ${pt(ax - pX * wA,   ay - pY * wA)}`,
-    `Z`,
+    `C ${p(mx + px * wM,  my + py * wM)}`,
+    `  ${p(mx + px * wM,  my + py * wM)}`,
+    `  ${p(bx + px * wB,  by + py * wB)}`,
+    // Right edge: tip → waist → base (closes the band)
+    `L ${p(bx - px * wB,  by - py * wB)}`,
+    `C ${p(mx - px * wM,  my - py * wM)}`,
+    `  ${p(mx - px * wM,  my - py * wM)}`,
+    `  ${p(ax - px * wA,  ay - py * wA)}`,
+    'Z',
   ].join(' ');
 }
 
-/* ── Spring configs ───────────────────────────────────────────── */
-interface SpringConfig { type: 'spring'; stiffness: number; damping: number; mass: number; }
-const HOVER_SPRING:  SpringConfig = { type: 'spring', stiffness: 260, damping: 22, mass: 0.6 };
-const BOUNCE_SPRING: SpringConfig = { type: 'spring', stiffness: 290, damping: 11, mass: 1.1 };
+/* ──────────────────────── spring configs ────────────────────────── */
 
-/* ── Component ───────────────────────────────────────────────── */
+type Spring = { type: 'spring'; stiffness: number; damping: number; mass: number };
+const HOVER_SPRING:  Spring = { type: 'spring', stiffness: 260, damping: 22, mass: 0.6 };
+const BOUNCE_SPRING: Spring = { type: 'spring', stiffness: 290, damping: 11, mass: 1.1 };
+
+/* ─────────────────────────── component ─────────────────────────── */
+
 export default function PizzaHero() {
   const isTouch =
     typeof window !== 'undefined' &&
     window.matchMedia('(hover: none) and (pointer: coarse)').matches;
 
-  /*
-   * All motion values declared individually at the top level — this strictly
-   * follows React's Rules of Hooks (no loops, no conditionals).
-   * NUM_SLICES = 6 → exactly 18 values (x, y, scale × 6).
-   */
+  /* ── Motion values (18 total — one set per slice, declared individually
+        at the top level to satisfy Rules of Hooks — no loops, no conditions) */
   const x0 = useMotionValue(SLICES[0].rxRest); const y0 = useMotionValue(SLICES[0].ryRest); const s0 = useMotionValue(1);
   const x1 = useMotionValue(SLICES[1].rxRest); const y1 = useMotionValue(SLICES[1].ryRest); const s1 = useMotionValue(1);
   const x2 = useMotionValue(SLICES[2].rxRest); const y2 = useMotionValue(SLICES[2].ryRest); const s2 = useMotionValue(1);
@@ -140,118 +178,112 @@ export default function PizzaHero() {
   const x4 = useMotionValue(SLICES[4].rxRest); const y4 = useMotionValue(SLICES[4].ryRest); const s4 = useMotionValue(1);
   const x5 = useMotionValue(SLICES[5].rxRest); const y5 = useMotionValue(SLICES[5].ryRest); const s5 = useMotionValue(1);
 
-  const mx = useRef([x0, x1, x2, x3, x4, x5]);
-  const my = useRef([y0, y1, y2, y3, y4, y5]);
-  const ms = useRef([s0, s1, s2, s3, s4, s5]);
+  const mvX = useRef([x0, x1, x2, x3, x4, x5]);
+  const mvY = useRef([y0, y1, y2, y3, y4, y5]);
+  const mvS = useRef([s0, s1, s2, s3, s4, s5]);
 
-  const [tappedSlice, setTappedSlice] = useState<number | null>(null);
-  /** Which slice is currently lifted (drives z-index). */
+  /** Which slice is currently active (hover / tap / drag). Drives z-index. */
   const [activeSlice,  setActiveSlice]  = useState<number | null>(null);
-  const dragRef      = useRef<{ index: number; startX: number; startY: number } | null>(null);
-  /** Ref to the outer div so we can measure its actual pixel width. */
-  const containerRef = useRef<HTMLDivElement>(null);
-  /** Actual container width in CSS px (kept in a ref, never triggers re-renders). */
-  const pizzaSizeRef = useRef(SVG_SIZE);
+  const [tappedSlice,  setTappedSlice]  = useState<number | null>(null);
+  const dragRef = useRef<{ index: number; startX: number; startY: number } | null>(null);
 
-  /* ─── SVG element refs updated directly in the RAF loop (no re-renders) ─── */
-  const strandGroupRefs = useRef<(SVGGElement | null)[]>(Array(NUM_SLICES).fill(null));
-  const strandPathRefs  = useRef<(SVGPathElement | null)[][]>(
-    Array.from({ length: NUM_SLICES }, () => Array(STRAND_OFFSETS.length).fill(null)),
+  /** Outer element — measured so we can convert CSS-px motion values → SVG units. */
+  const containerRef  = useRef<HTMLDivElement>(null);
+  const pizzaSizePx   = useRef(SZ); // updated by ResizeObserver, never triggers re-render
+
+  /* ── SVG element refs — updated by the RAF loop, never via React state ── */
+  const svgGroupRefs = useRef<(SVGGElement    | null)[]>(Array(NUM_SLICES).fill(null));
+  const svgPathRefs  = useRef<(SVGPathElement | null)[][]>(
+    Array.from({ length: NUM_SLICES }, () => Array(STRAND_DEG.length).fill(null)),
   );
 
-  /* ── Track container size (CSS px → SVG unit scale factor) ── */
+  /* ── Track container width for CSS px → SVG unit conversion ── */
   useEffect(() => {
     const el = containerRef.current;
     if (!el) return;
-    const ro = new ResizeObserver(entries => {
-      pizzaSizeRef.current = entries[0].contentRect.width || SVG_SIZE;
+    const ro = new ResizeObserver(([e]) => {
+      pizzaSizePx.current = e.contentRect.width || SZ;
     });
     ro.observe(el);
-    pizzaSizeRef.current = el.offsetWidth || SVG_SIZE;
+    pizzaSizePx.current = el.offsetWidth || SZ;
     return () => ro.disconnect();
   }, []);
 
-  /* ── RAF loop: update cheese strand SVG paths via direct DOM writes ── */
+  /* ── RAF loop: update cheese strand SVG paths via direct DOM writes
+        (zero React re-renders during animation) ── */
   useEffect(() => {
-    let rafId: number;
+    let raf: number;
 
     const tick = () => {
-      /*
-       * Scale factor converts CSS-px motion values to SVG coordinate units.
-       * The SVG uses a fixed 420×420 viewBox; if the container is 280px wide
-       * the scale is 420/280 = 1.5 — so a 24px hover lift becomes 36 SVG units.
+      /**
+       * Scale: converts CSS px (motion values) → SVG coordinate units.
+       * SVG viewBox is always SZ×SZ; container may be smaller on mobile.
+       * e.g. container=280 px → scale = 420/280 = 1.5, so 24 px → 36 SVG units.
        */
-      const scale  = SVG_SIZE / (pizzaSizeRef.current || SVG_SIZE);
-      const innerR = SVG_R * 0.30; // cheese attachment radius in SVG units
+      const scale   = SZ / (pizzaSizePx.current || SZ);
+      const innerR  = PR * STRAND_INNER_R_FRAC;
 
       for (let i = 0; i < NUM_SLICES; i++) {
-        const { rxRest, ryRest, centerDeg } = SLICES[i];
+        const { rxRest, ryRest, cDeg } = SLICES[i];
 
-        // Displacement from the at-rest position, in SVG units
-        const dx   = (mx.current[i].get() - rxRest) * scale;
-        const dy   = (my.current[i].get() - ryRest) * scale;
-        const dist = Math.sqrt(dx * dx + dy * dy);
+        // Displacement from rest (CSS px → SVG units)
+        const dx   = (mvX.current[i].get() - rxRest) * scale;
+        const dy   = (mvY.current[i].get() - ryRest) * scale;
+        const dist = Math.hypot(dx, dy);
 
-        const group = strandGroupRefs.current[i];
-        if (!group) continue;
+        const grp = svgGroupRefs.current[i];
+        if (!grp) continue;
 
-        const threshold = MIN_PULL_PX * scale;
+        const threshold = SHOW_AFTER_PX * scale;
         if (dist < threshold) {
-          group.setAttribute('opacity', '0');
+          grp.setAttribute('opacity', '0');
           continue;
         }
 
-        // Fade in quickly once the slice starts moving
-        const fadeRange = 5 * scale;
-        const opacity   = Math.min(0.95, (dist - threshold) / fadeRange);
-        group.setAttribute('opacity', opacity.toFixed(3));
+        // Smooth fade-in once the slice starts moving
+        const opacity = Math.min(0.95, (dist - threshold) / (4 * scale));
+        grp.setAttribute('opacity', opacity.toFixed(3));
 
         // Strand width narrows as the slice pulls further away
-        const maxPull   = FLOAT_DIST * 3 * scale;
-        const pullRatio = Math.min(1, dist / maxPull);
-        const w         = MAX_STRAND_W * (1 - pullRatio * 0.70);
+        const maxStretch = FLOAT_DIST * 3 * scale;
+        const stretch    = Math.min(1, dist / maxStretch); // 0=just lifted, 1=max
+        const w          = MAX_W * (1 - stretch * 0.72);
 
-        for (let j = 0; j < STRAND_OFFSETS.length; j++) {
-          const angleRad = toRad(centerDeg + STRAND_OFFSETS[j]);
-          const d        = buildStrandPath(SVG_CX, SVG_CY, angleRad, innerR, dx, dy, w);
-          const path     = strandPathRefs.current[i]?.[j];
-          if (path) path.setAttribute('d', d);
+        for (let j = 0; j < STRAND_DEG.length; j++) {
+          const a = rad(cDeg + STRAND_DEG[j]);
+          const d = strandPath(a, innerR, dx, dy, w);
+          svgPathRefs.current[i][j]?.setAttribute('d', d);
         }
       }
 
-      rafId = requestAnimationFrame(tick);
+      raf = requestAnimationFrame(tick);
     };
 
-    rafId = requestAnimationFrame(tick);
-    return () => cancelAnimationFrame(rafId);
-  }, []); // no deps — reads from refs only
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, []); // reads only from refs — no deps needed
 
-  /* ── Animation helper ─────────────────────────────────────── */
-  const springTo = (
-    i: number,
-    x: number, y: number, scale: number,
-    spring = HOVER_SPRING,
-  ) => {
-    animate(mx.current[i], x,     spring);
-    animate(my.current[i], y,     spring);
-    animate(ms.current[i], scale, spring);
+  /* ── Animation helper ── */
+  const springTo = (i: number, x: number, y: number, sc: number, sp = HOVER_SPRING) => {
+    animate(mvX.current[i], x,  sp);
+    animate(mvY.current[i], y,  sp);
+    animate(mvS.current[i], sc, sp);
   };
 
-  /* ── Hover (desktop) ─────────────────────────────────────── */
-  const handleMouseEnter = (i: number) => {
+  /* ── Hover (desktop / trackpad) ── */
+  const onEnter = (i: number) => {
     if (isTouch || dragRef.current) return;
     setActiveSlice(i);
     springTo(i, SLICES[i].tx, SLICES[i].ty, 1.06);
   };
-
-  const handleMouseLeave = (i: number) => {
+  const onLeave = (i: number) => {
     if (isTouch || dragRef.current?.index === i) return;
     setActiveSlice(null);
     springTo(i, SLICES[i].rxRest, SLICES[i].ryRest, 1);
   };
 
-  /* ── Right-click drag ────────────────────────────────────── */
-  const handleMouseDown = (e: React.MouseEvent, i: number) => {
+  /* ── Right-click drag ── */
+  const onMouseDown = (e: React.MouseEvent, i: number) => {
     if (e.button !== 2) return;
     e.preventDefault();
     const { rxRest, ryRest } = SLICES[i];
@@ -260,26 +292,24 @@ export default function PizzaHero() {
 
     const onMove = (ev: MouseEvent) => {
       if (!dragRef.current) return;
-      mx.current[i].set(rxRest + ev.clientX - dragRef.current.startX);
-      my.current[i].set(ryRest + ev.clientY - dragRef.current.startY);
-      ms.current[i].set(1.08);
+      mvX.current[i].set(rxRest + ev.clientX - dragRef.current.startX);
+      mvY.current[i].set(ryRest + ev.clientY - dragRef.current.startY);
+      mvS.current[i].set(1.08);
     };
-
     const onUp = (ev: MouseEvent) => {
       if (ev.button !== 2) return;
       dragRef.current = null;
       setActiveSlice(null);
       window.removeEventListener('mousemove', onMove);
-      window.removeEventListener('mouseup',   onUp);
+      window.removeEventListener('mouseup', onUp);
       springTo(i, rxRest, ryRest, 1, BOUNCE_SPRING);
     };
-
     window.addEventListener('mousemove', onMove);
-    window.addEventListener('mouseup',   onUp);
+    window.addEventListener('mouseup', onUp);
   };
 
-  /* ── Touch tap toggle ────────────────────────────────────── */
-  const handleTap = (i: number) => {
+  /* ── Touch tap toggle ── */
+  const onTap = (i: number) => {
     if (!isTouch) return;
     const next = tappedSlice === i ? null : i;
     setTappedSlice(next);
@@ -292,108 +322,108 @@ export default function PizzaHero() {
     );
   };
 
-  const mvX = mx.current;
-  const mvY = my.current;
-  const mvS = ms.current;
-
   return (
-    /*
-     * Outer div measured via containerRef so the RAF loop knows the actual
-     * CSS pixel width for coordinate conversion.
-     */
-    <div
+    <motion.div
       ref={containerRef}
-      className="relative w-full max-w-[420px] mx-auto aspect-square"
+      className="relative w-full max-w-[420px] mx-auto aspect-square select-none"
+      initial={{ opacity: 0, scale: 0.85 }}
+      animate={{ opacity: 1, scale: 1 }}
+      transition={{ duration: 0.7, ease: 'easeOut', delay: 0.3 }}
+      aria-label="Interactive chicken pizza illustration"
     >
-      <motion.div
-        className="relative w-full h-full select-none"
-        initial={{ opacity: 0, scale: 0.85 }}
-        animate={{ opacity: 1, scale: 1 }}
-        transition={{ duration: 0.7, ease: 'easeOut', delay: 0.3 }}
-        aria-label="Interactive chicken pizza illustration"
-      >
-        {/* Warm under-glow */}
-        <div
-          className="absolute inset-[10%] rounded-full blur-3xl opacity-25 pointer-events-none"
-          style={{ background: 'radial-gradient(circle, #F97316 0%, #FCD0A1 60%, transparent 100%)' }}
-        />
+      {/* ── Warm glow behind the pizza ── */}
+      <div
+        className="absolute inset-[10%] rounded-full blur-3xl opacity-25 pointer-events-none"
+        style={{ background: 'radial-gradient(circle, #F97316 0%, #FCD0A1 60%, transparent 100%)' }}
+      />
 
-        {/*
-         * Z-layer stack (all absolute, same inset-0 origin):
-         *   z-1   base pizza slices (all non-active)
-         *   z-5   cheese strand SVG overlay
-         *   z-10  the currently active/hovered slice (rendered last → on top)
-         *
-         * This makes strands appear to emerge from the pizza surface (below the
-         * active slice) while still being visible over the neighbouring slices.
-         */}
+      {/*
+       * ── z:0  BASE PIZZA IMAGE ───────────────────────────────────
+       * This is the key architectural fix.  The full, unclipped pizza
+       * image sits at the very bottom.  When a slice moves outward the
+       * gap it leaves is filled by this image — showing the correct
+       * cheese/toppings — rather than the raw page background.
+       * This eliminates the "floating cheese" artefact completely.
+       */}
+      <img
+        src={pizzaImg}
+        alt=""
+        aria-hidden
+        draggable={false}
+        className="absolute inset-0 w-full h-full object-contain pointer-events-none"
+        style={{ zIndex: 0 }}
+      />
 
-        {/* ── Base pizza slices ── */}
-        {SLICES.map(({ clipPath }, i) => (
-          <motion.div
-            key={i}
-            className="absolute inset-0 cursor-pointer"
-            style={{
-              clipPath,
-              x: mvX[i],
-              y: mvY[i],
-              scale: mvS[i],
-              zIndex: activeSlice === i ? 10 : 1,
-            }}
-            onMouseEnter={() => handleMouseEnter(i)}
-            onMouseLeave={() => handleMouseLeave(i)}
-            onMouseDown={(e) => handleMouseDown(e, i)}
-            onContextMenu={(e) => e.preventDefault()}
-            onClick={() => handleTap(i)}
-          >
-            <img
-              src={pizzaImg}
-              alt=""
-              aria-hidden
-              draggable={false}
-              className="w-full h-full object-contain pointer-events-none"
-            />
-          </motion.div>
-        ))}
-
-        {/*
-         * ── Cheese pull strand SVG (z-5) ──
-         *
-         * Sits between the static pizza slices (z-1) and the active slice (z-10).
-         * Updated every animation frame by reading motion values directly —
-         * zero React re-renders; only direct SVGElement.setAttribute() calls.
-         *
-         * viewBox is fixed at SVG_SIZE × SVG_SIZE. The container's actual CSS
-         * width is stored in pizzaSizeRef and used to scale motion-value px into
-         * SVG coordinate units inside the RAF loop.
-         */}
-        <svg
-          className="absolute inset-0 pointer-events-none"
-          style={{ width: '100%', height: '100%', zIndex: 5, overflow: 'visible' }}
-          viewBox={`0 0 ${SVG_SIZE} ${SVG_SIZE}`}
-          preserveAspectRatio="xMidYMid meet"
-          aria-hidden
+      {/*
+       * ── z:1  SIX CLIPPED SLICE LAYERS ──────────────────────────
+       * Each carries the interaction surface and the slight at-rest
+       * separation (GAP_AT_REST).  At rest they cover the base image
+       * perfectly.  The active slice is promoted to z:10 so it renders
+       * above the cheese strand SVG (z:5).
+       */}
+      {SLICES.map(({ clip }, i) => (
+        <motion.div
+          key={i}
+          className="absolute inset-0 cursor-pointer"
+          style={{
+            clipPath : clip,
+            x        : mvX.current[i],
+            y        : mvY.current[i],
+            scale    : mvS.current[i],
+            zIndex   : activeSlice === i ? 10 : 1,
+          }}
+          onMouseEnter={() => onEnter(i)}
+          onMouseLeave={() => onLeave(i)}
+          onMouseDown={(e) => onMouseDown(e, i)}
+          onContextMenu={(e) => e.preventDefault()}
+          onClick={() => onTap(i)}
         >
-          {SLICES.map((_, i) => (
-            <g
-              key={i}
-              ref={(el) => { strandGroupRefs.current[i] = el; }}
-              opacity={0}
-            >
-              {STRAND_OFFSETS.map((_, j) => (
-                <path
-                  key={j}
-                  ref={(el) => { strandPathRefs.current[i][j] = el; }}
-                  fill={CHEESE_FILL}
-                  stroke={CHEESE_STROKE}
-                  strokeWidth={0.7}
-                  strokeLinejoin="round"
-                />
-              ))}
-            </g>
-          ))}
-        </svg>
-      </motion.div>
-    </div>
+          <img
+            src={pizzaImg}
+            alt=""
+            aria-hidden
+            draggable={false}
+            className="w-full h-full object-contain pointer-events-none"
+          />
+        </motion.div>
+      ))}
+
+      {/*
+       * ── z:5  CHEESE STRAND SVG ──────────────────────────────────
+       * Sits between the static slices (z:1) and the active one (z:10).
+       * Four taffy-shaped bezier bands per slice, anchored at the
+       * cut-line convergence zone, stretch and thin as the slice lifts.
+       * All updates via direct setAttribute() in the RAF loop above.
+       *
+       * viewBox is fixed at SZ×SZ.  The RAF loop converts CSS-px motion
+       * values to SVG units using the measured container pixel width.
+       */}
+      <svg
+        className="absolute inset-0 pointer-events-none"
+        style={{ width: '100%', height: '100%', zIndex: 5, overflow: 'visible' }}
+        viewBox={`0 0 ${SZ} ${SZ}`}
+        preserveAspectRatio="xMidYMid meet"
+        aria-hidden
+      >
+        {SLICES.map((_, i) => (
+          <g
+            key={i}
+            ref={(el) => { svgGroupRefs.current[i] = el; }}
+            opacity={0}
+          >
+            {STRAND_DEG.map((_, j) => (
+              <path
+                key={j}
+                ref={(el) => { svgPathRefs.current[i][j] = el; }}
+                fill={CHEESE_FILL}
+                stroke={CHEESE_STROKE}
+                strokeWidth={0.8}
+                strokeLinejoin="round"
+              />
+            ))}
+          </g>
+        ))}
+      </svg>
+    </motion.div>
   );
 }
