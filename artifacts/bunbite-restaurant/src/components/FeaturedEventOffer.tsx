@@ -146,20 +146,23 @@ export default function FeaturedEventOffer() {
 
   if (timeLeft.expired) return null;
 
-  /* Shared player image style — identical dimensions & alignment for both sides */
+  /**
+   * Shared player base style — height-driven so both players occupy the
+   * same fraction of the panel regardless of source image dimensions.
+   */
   const playerStyle: React.CSSProperties = {
     position: 'absolute',
     bottom: 0,
-    width: '90%',
-    maxWidth: 320,
-    height: 'auto',
+    left: '50%',
+    transform: 'translateX(-50%)',
+    height: '92%',       // both players fill the same panel height
+    width: 'auto',       // aspect ratio preserved
+    maxWidth: '95%',     // never overflow the panel on narrow viewports
     objectFit: 'contain',
     objectPosition: 'bottom center',
     zIndex: 20,
     userSelect: 'none',
     pointerEvents: 'none',
-    left: '50%',
-    transform: 'translateX(-50%)',
   };
 
   return (
@@ -452,7 +455,13 @@ export default function FeaturedEventOffer() {
                     draggable={false}
                     style={{
                       ...playerStyle,
-                      filter: 'drop-shadow(12px 0px 28px rgba(160,40,230,0.65)) drop-shadow(0px -6px 24px rgba(160,40,230,0.20)) saturate(1.1)',
+                      filter: [
+                        'drop-shadow(12px 0px 32px rgba(160,40,230,0.70))',  // side glow
+                        'drop-shadow(-6px 0px 18px rgba(200,80,255,0.40))',  // inner edge highlight
+                        'drop-shadow(0px -8px 24px rgba(160,40,230,0.22))', // top rim light
+                        'saturate(1.12)',
+                        'brightness(1.04)',
+                      ].join(' '),
                     }}
                   />
                 </div>
